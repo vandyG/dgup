@@ -9,7 +9,7 @@ authors = [{name = "Vandit Goel", email = "vandy.goel23@gmail.com"}]
 license = "MIT"
 license-files = ["LICENSE"]
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 keywords = []
 dynamic = ["version"]
 classifiers = [
@@ -28,7 +28,9 @@ classifiers = [
     "Topic :: Utilities",
     "Typing :: Typed",
 ]
-dependencies = []
+dependencies = [
+    "jax[cuda13]>=0.8",
+]
 
 [project.urls]
 Homepage = "https://vandyG.github.io/dgup"
@@ -101,6 +103,10 @@ ci = [
     "mkdocstrings[python]>=0.29",
     # YORE: EOL 3.10: Remove line.
     "tomli>=2.0; python_version < '3.11'",
+]
+dev = [
+    "markitdown-mcp>=0.0.1a4",
+    "markitdown[all]>=0.1.4",
 ]
 
 [tool.uv]
