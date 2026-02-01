@@ -24,6 +24,6 @@ uv.lock
 .ruff_cache/
 __pycache__/
 
-data/
+data/bronze/
 .direnv/
 .envrc
