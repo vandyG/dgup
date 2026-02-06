@@ -57,33 +57,57 @@ def _(mo, pivot_data):
 @app.cell
 def _(mo):
     scale = ["Yearly", "Monthly", "Bi-weekly", "Weekly"]
-    multiselect_scale = mo.ui.dropdown(options=scale, label="Select Scale", value="Yearly")
+    multiselect_scale = mo.ui.dropdown(options=scale, label="Select Scale")
     return (multiselect_scale,)
 
 
 @app.cell
-def _(alt, dt, mo, multiselect_scale, multiselect_types, pivot_data, pl):
+def _(alt, dt, multiselect_scale):
+    date_ranges = {
+        "Yearly": (dt.date(2020,1,1), dt.date(2020,12,31)),
+        "Monthly": (dt.date(2020,6,1), dt.date(2020,6,30)),
+        "Weekly": (dt.date(2020,6,1), dt.date(2020,6,7)),
+        "Bi-weekly": (dt.date(2020,6,1), dt.date(2020,6,14)),
+    }
+    # Define initial date range to select
+    date_range = date_ranges.get(multiselect_scale.value, (dt.date(2020,1,1), dt.date(2020,12,31)))
+
+    # Create interval selection with initial value
+    brush = alt.selection_interval(
+        encodings=['x'],
+        value={'x': date_range}
+    )
+    return (brush,)
+
+
+@app.cell
+def _(mo):
+    number = mo.ui.number(start=7, stop=30, label="Rolling Average")
+    return (number,)
+
+
+@app.cell
+def _(multiselect_types, number, pivot_data, pl):
+    source_collected = pivot_data.collect()
+    source = source_collected.filter(pl.col("Usage Type").is_in([multiselect_types.value]))
+    rolling_avg = source.with_columns(rolling_avg = pl.col("Usage").rolling_mean(window_size=number.value))
+    return rolling_avg, source
+
+
+@app.cell
+def _(
+    alt,
+    brush,
+    mo,
+    multiselect_scale,
+    multiselect_types,
+    number,
+    rolling_avg,
+    source,
+):
     def _():
-        source = pivot_data.filter(pl.col("Usage Type").is_in([multiselect_types.value])).collect()
-        rolling_avg = source.with_columns(rolling_avg = pl.col("Usage").rolling_mean(window_size=7))
-
-        date_ranges = {
-            "Yearly": (dt.date(2020,1,1), dt.date(2020,12,31)),
-            "Monthly": (dt.date(2020,6,1), dt.date(2020,6,30)),
-            "Weekly": (dt.date(2020,6,1), dt.date(2020,6,7)),
-            "Bi-weekly": (dt.date(2020,6,1), dt.date(2020,6,14)),
-        }
-        # Define initial date range to select
-        date_range = date_ranges.get(multiselect_scale.value, (dt.date(2020,1,1), dt.date(2020,12,31)))
-
-        # Create interval selection with initial value
-        brush = alt.selection_interval(
-            encodings=['x'],
-            value={'x': date_range}
-        )
-
         # Create base chart for both panels
-        base = alt.Chart(rolling_avg, width="container", height=200).mark_line(tooltip=True).encode(
+        base = alt.Chart(source, width="container", height=200).mark_line(tooltip=True).encode(
             x = 'Date:T',
             y = 'Usage:Q'
         )
@@ -114,7 +138,7 @@ def _(alt, dt, mo, multiselect_scale, multiselect_types, pivot_data, pl):
     title = mo.md(r"""# Gas Usage Explorer""")
     desc = mo.md(r"""The lower panel provides an overview with a brush (selection) that controls the visible time window. The upper panel shows a detailed view of the selected time range. Use the dropdowns to choose which usage types and time scale to inspect. The y-axis is shared between panels to keep vertical scaling consistent when comparing ranges.""")
 
-    mo.vstack([title, desc, mo.hstack([multiselect_types, multiselect_scale]), _()], gap="1")
+    mo.vstack([title, desc, mo.hstack([multiselect_types, number, multiselect_scale]), _()], gap="1")
     return
 
 
