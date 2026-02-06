@@ -8,7 +8,7 @@
 
 import marimo
 
-__generated_with = "0.19.8"
+__generated_with = "0.19.7"
 app = marimo.App(width="full")
 
 
@@ -23,15 +23,13 @@ def _():
     import polars.selectors as cs
     import datetime as dt
     import pandas as pd
-
-
     return alt, cast, cs, dt, mo, pd, pl
 
 
 @app.cell
 def _(cast, pl):
     # Read uta_gas_usage.parquet using a Polars lazy frame
-    lf= cast("pl.LazyFrame", pl.scan_parquet("/home/kumar/dgup/data/silver/uta_gas_usage.parquet"))
+    lf= cast("pl.LazyFrame", pl.scan_parquet("/home/vandy/Work/DASC5309/scot-forge/data/silver/uta_gas_usage.parquet"))
 
     lf2 = lf.with_columns((pl.col("Usage - 1")+pl.col("Usage - 2")+pl.col("Usage - 2_1")).alias("Total Usage"))
     # lf2.collect_schema()
@@ -54,7 +52,7 @@ def _(cs, lf2, pl):
 @app.cell
 def _(mo, pivot_data):
     usage_types = pivot_data.select("Usage Type").unique().collect().to_series().to_list()
-    multiselect_types = mo.ui.dropdown(options=usage_types, label="Select Usage Types")
+    multiselect_types = mo.ui.dropdown(options=usage_types, label="Select Usage Types", value="Total Usage")
     return (multiselect_types,)
 
 
@@ -74,7 +72,7 @@ def _(alt, dt, multiselect_scale):
         "Bi-weekly": (dt.date(2020,6,1), dt.date(2020,6,14)),
     }
     # Define initial date range to select
-    date_range = date_ranges.get(multiselect_scale.value, (dt.date(2020,1,1), dt.date(2020,12,31)))
+    date_range = date_ranges.get(multiselect_scale.value, (dt.date(2015,8,1), dt.date(2024,11,30)))
 
     # Create interval selection with initial value
     brush = alt.selection_interval(
@@ -86,7 +84,7 @@ def _(alt, dt, multiselect_scale):
 
 @app.cell
 def _(mo):
-    number = mo.ui.number(start=7, stop=30, label="Rolling Average")
+    number = mo.ui.number(start=7, stop=365, label="Rolling Average", value=365)
     return (number,)
 
 
@@ -147,6 +145,95 @@ def _(
 
 
 @app.cell
+def _(mo):
+    usc_title = mo.md(r"""## Usage Stream Characteristics""")
+    usc_desc = mo.md(r"""- **Usage-1** follows a standard seasonal cycle (Winter peaks/Summer dips). Notably, it shows a "Saturday Slump," suggesting a reduction in operational activity or a specific weekend shutdown process.
+    - **Usage-2** represents the core consumption driver of the system and accounts for approximately 84% of total gas usage. This stream exhibits the highest degree of variability and stochastic noise, making it the dominant contributor to overall volatility. There is a stagnation period in late 2017 followed by sudden "jumps" in early 2018. 
+    - **Usage-2_1** is a minor consumption component that exhibits a persistent long-term decreasing trend. It remains largely inactive during summer months and shows a noticeable shift in activity levels after 2021, indicating a potential change in operational behavior or system configuration.""")
+
+    stt_title = mo.md(r"""## Seasonality and Temporal Trends""")
+    stt_desc = mo.md(r"""- **Annual Cyclicity:** Gas consumption is strongly driven by seasonal thermal demand. Peak usage occurs during winter months, with January averaging approximately 2,099 units and February approximately 2,034 units. In contrast, summer consumption drops significantly, with July through September forming a baseline range of roughly 1,452 to 1,622 units. This reflects an annual seasonal swing of approximately 600 units.
+
+    - **Weekly Periodicity:** System-wide gas usage is not evenly distributed across the week. Multiple usage streams show a consistent reduction in consumption on Saturdays, confirming the presence of a weekly operational cycle. This pattern reinforces the importance of including day-of-week effects as a core modeling feature.
+    """)
+
+    mo.callout(mo.vstack([usc_title, usc_desc]), kind="info")
+    return stt_desc, stt_title
+
+
+@app.cell
+def _(alt, multiselect_types, pivot_data, pl):
+    def boxplot_chart():
+        # 1. Prepare data
+        df_box = (
+            pivot_data
+            .filter(pl.col("Usage Type") == multiselect_types.value)
+            .with_columns([
+                pl.col("Date").dt.strftime("%b").alias("Month")
+            ])
+            .collect()
+        )
+
+        # Define the explicit order for the X-axis
+        month_order = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+                       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+        # 2. Build the Box Plot
+        chart = (
+            alt.Chart(df_box).mark_boxplot(
+                extent=1.5,      # Standard IQR whiskers
+                outliers=True,
+                size=40,
+                color='#4c78a8'
+            ).encode(
+                x=alt.X("Month:N", 
+                        title="Month", 
+                        sort=month_order), # Explicitly set the calendar order
+                y=alt.Y("Usage:Q", 
+                        title=f"Usage: {multiselect_types.value}"),
+                tooltip=["Date:T", "Usage:Q"]
+            ).properties(
+                width="container",
+                height=450,
+                title=f"Monthly Box-plots: {multiselect_types.value}"
+            ).interactive()
+        )
+
+        return chart
+
+    # Display the result
+    boxplot_chart()
+    return
+
+
+@app.cell
+def _(alt, mo, pivot_data):
+    hist = alt.Chart(pivot_data.collect()) \
+        .mark_bar(tooltip=True, opacity=0.6, binSpacing=0) \
+            .encode(
+                alt.X("Usage:Q", axis=alt.Axis(labelAngle=45)).bin(maxbins=50),
+                alt.Y("count()").stack(None),
+                alt.Color("Usage Type:N")
+            )
+
+    hist_desc = mo.md(r"""
+    The density chart reveals that **Usage-2** and **Usage_Total** share a similar broad distribution, with dominant peaks occurring between approximately 1,400 and 2,000 units.
+
+    In contrast, **Usage-1** exhibits a much tighter distribution, clustering around roughly 200 units, which suggests more stable and narrowly bounded operational behavior. **Usage-2_1** shows the highest density concentrated near zero, indicating that this stream is frequently inactive or operating at a minimal baseline for extended periods.
+
+    """)
+
+    mo.hstack([hist, hist_desc], widths=[0.65, 0.35])
+    return
+
+
+@app.cell
+def _(mo, stt_desc, stt_title):
+    mo.callout(mo.vstack([stt_title, stt_desc]), kind="info")
+    return
+
+
+@app.cell
 def _():
     # TODO: Add heatmaps.
     # TODO: Add lag visualizations.
@@ -156,130 +243,233 @@ def _():
 
 @app.cell
 def _(mo):
+    options = ["Average Monthly Usage", "Total Monthly Usage"]
+    radio = mo.ui.radio(options=options, value="Total Monthly Usage")
+    return (radio,)
+
+
+@app.cell
+def _(alt, mo, multiselect_types, pivot_data, pl, radio):
+    def heatmap_view(selected_type = multiselect_types.value, option = "Total Monthly Usage"):
+        # Process the data for the heatmap
+        # We extract Year and Month parts from the Date
+
+        agg_func = pl.Expr.sum if option == "Total Monthly Usage" else pl.Expr.mean
+        df_hm = (
+            pivot_data
+            .filter(pl.col("Usage Type") == selected_type)
+            .with_columns([
+                pl.col("Date").dt.year().alias("Year"),
+                pl.col("Date").dt.month().alias("Month_Num"),
+                pl.col("Date").dt.strftime("%b").alias("Month")
+            ])
+            .group_by(["Year", "Month", "Month_Num"])
+            .agg(agg_func(pl.col("Usage")).alias("Total_Usage"))
+            .sort("Month_Num")
+            .collect()
+        )
+
+        # Create the Heatmap Base
+        base = alt.Chart(df_hm).mark_rect().encode(
+            x=alt.X("Year:O", title="Year", axis=alt.Axis(labelAngle=0)),
+            y=alt.Y("Month:N", title="Month", sort=alt.SortField("Month_Num")),
+            color=alt.Color(
+                "Total_Usage:Q", 
+                scale=alt.Scale(scheme="yelloworangered"),
+                title="Usage Intensity"
+            ),
+            tooltip=["Year", "Month", "Total_Usage"]
+        ).properties(
+            width="container",
+            height=350,
+            title=f"{option} Intensity: {selected_type}"
+        )
+
+        # Add Text Annotations (annot=True equivalent)
+        text = base.mark_text(baseline='middle').encode(
+            text=alt.Text("Total_Usage:Q", format=".0f"),
+            # Dynamic text color: black on light cells, white on dark cells
+            color=alt.condition(
+                alt.datum.Total_Usage > df_hm["Total_Usage"].mean(),
+                alt.value("white"),
+                alt.value("black")
+            )
+        )
+
+        return base + text
+
+    mo.hstack([heatmap_view(option=radio.value), radio, ], widths=[1, 0.15],)
+    return
+
+
+@app.cell
+def _(alt, lf2, mo, multiselect_types, pd):
+    col = multiselect_types.value
+
+    # df = pd.read_parquet("/home/vandy/Work/DASC5309/scot-forge/data/silver/uta_gas_usage.parquet")
+    # df["Total Usage"] = (
+    #     df["Usage - 1"] +
+    #     df["Usage - 2"] +
+    #     df["Usage - 2_1"]
+    # )
+    # df.head()
+
+    df = lf2.collect().to_pandas()
+
+    # Create lag columns
+    temp = pd.DataFrame({
+        col: df[col],
+        "lag_1": df[col].shift(1),
+        "lag_7": df[col].shift(7),
+        "lag_30": df[col].shift(30)
+    })
+
+    # Correlation matrix
+    corr = temp[[col, "lag_1", "lag_7", "lag_30"]].corr()
+
+    # Convert to long format
+    corr_long = (
+        corr
+        .reset_index()
+        .melt(id_vars="index", var_name="Variable", value_name="Correlation")
+        .rename(columns={"index": "Lag"})
+    )
+
+    # Heatmap
+    heatmap = (
+        alt.Chart(corr_long)
+        .mark_rect()
+        .encode(
+            x=alt.X("Variable:N", title=""),
+            y=alt.Y("Lag:N", title=""),
+            color=alt.Color(
+                "Correlation:Q",
+                scale=alt.Scale(scheme="blues"),
+                title="Correlation"
+            ),
+            tooltip=[
+                alt.Tooltip("Lag:N"),
+                alt.Tooltip("Variable:N"),
+                alt.Tooltip("Correlation:Q", format=".3f")
+            ]
+        )
+        .properties(
+            title=f"Correlation Heatmap: {col} vs Lags",
+            width=400,
+            height=400
+        )
+    )
+
+    # Add text annotations (like annot=True)
+    text = (
+        alt.Chart(corr_long)
+        .mark_text(color="black")
+        .encode(
+            x="Variable:N",
+            y="Lag:N",
+            text=alt.Text("Correlation:Q", format=".3f"),
+            color=alt.condition(
+                alt.datum.Correlation > corr_long["Correlation"].mean(),
+                alt.value("white"),
+                alt.value("black")
+            )
+        )
+    )
+    ch_title = mo.md(r"""
+    # Lagged Correlations
+    """)
+    ch_desc = mo.md(r"""
+    The heatmap shows the correlation between the selected usage type and its lagged values (1 day, 7 days, and 30 days). It displays the strength and direction of relationships between Gas Usage, accounting for time delays (lags) in their interaction.""")
+
+    ch_obs = mo.md(r"""- **Usage-1** Usage-1 displays a stronger relationship with its 7-day lag (0.824) than with its 1-day lag (0.718), providing statistical evidence of a consistent weekly cycle. This pattern aligns with the observed “Saturday Slump,” where reduced weekend activity drives recurring weekly dips in consumption.
+
+    - **Usage-2** The main consumption stream shows moderate dependence on both 1-day (0.610) and 7-day (0.636) lags but experiences a complete loss of predictive signal at the 30-day horizon (-0.042). This behavior indicates that Usage-2 is governed by immediate operational conditions rather than long-term temporal trends.
+
+    - **Usage-2_1** This stream exhibits exceptionally strong correlation of 0.985 with its 1-day lag. Even at a 30-day horizon, Usage-2_1 retains a substantial correlation of 0.808, suggesting slow-moving behavior and limited sensitivity to short-term operational fluctuations.
+
+    - **Total Usage** Usage_Total closely mirrors the dynamics of the Usage-2, with the 7-day lag (0.691) serving as the strongest predictive anchor. In contrast, the 30-day lag contributes virtually no explanatory power (0.015), reinforcing the conclusion that weekly patterns dominate system-wide gas usage behavior.
+    """)
+
+    mo.hstack([mo.vstack([ch_title, ch_desc, ch_obs]), mo.vstack([multiselect_types.center(), mo.ui.altair_chart(heatmap + text).center()]), ])
+    return
+
+
+@app.cell
+def _(alt, lf2, mo, pl):
+    # # Columns to include
+    # columns_to_corr = ["Usage_Total","Usage - 1","Usage - 2","Usage - 2_1", "Nom", "Delivery"]
+
+    # Compute correlation matrix (store in a new variable)
+    # corr_matrix_alt = df[columns_to_corr].corr()
+    corr_matrix_alt = lf2.select(pl.exclude("Date")).collect().to_pandas().corr()
+
+    # Convert to long format
+    corr_long_alt = (
+        corr_matrix_alt.reset_index()
+        .melt(id_vars="index", var_name="Variable", value_name="Correlation")
+        .rename(columns={"index": "Row"})
+    )
+
+    # Altair heatmap chart (unique variable names)
+    corr_heatmap_alt = alt.Chart(corr_long_alt).mark_rect().encode(
+        x=alt.X("Variable:N", title=""),
+        y=alt.Y("Row:N", title=""),
+        color=alt.Color("Correlation:Q", scale=alt.Scale(scheme="blues")),
+        tooltip=[
+            alt.Tooltip("Row:N", title="Row"),
+            alt.Tooltip("Variable:N", title="Column"),
+            alt.Tooltip("Correlation:Q", format=".2f")
+        ]
+    ).properties(
+        width=400,
+        height=400,
+        title="Correlation Matrix"
+    )
+
+    # Add text annotations (unique variable names)
+    corr_text_alt = alt.Chart(corr_long_alt).mark_text(color="black").encode(
+        x="Variable:N",
+        y="Row:N",
+        text=alt.Text("Correlation:Q", format=".2f"),
+                color=alt.condition(
+                alt.datum.Correlation > corr_long_alt["Correlation"].mean(),
+                alt.value("white"),
+                alt.value("black")
+            )
+    )
+
+    corr_chart = corr_heatmap_alt + corr_text_alt
+    corr_title = mo.md(r"# Variable Correlations")
+    corr_desc = mo.md(r"""**Usage_Total** demonstrates a dominant linear relationship with **Usage - 2** ($r = 0.98$) and a moderate association with **Usage - 1** ($r = 0.78$). In contrast, all other usage-related metrics show weak negative correlations with the delivery and supply data, highlighting a decoupling between operational consumption and supply measurements
+    """)
+
+    mo.hstack([ mo.ui.altair_chart(corr_chart).center(), mo.vstack([corr_title, corr_desc]), ])
+    return
+
+
+@app.cell
+def _(mo):
     mo.md(r"""
-    # Usage 1
-    - Usage peaks during winter season and dips during summer.
-    - Dips on saturday.
-
-    # Usage 2_1
-    - Usage peaks during winter season and barely running during summer.
-    - Overall decreasing trend.
-
-    # Usage 2
-    - Usage peaks during winter season and dips during summer.
-    - Dips on saturday.
-    - Anomaly towards late 2017 and early 2018 (January). Stagnation -> Sudden jump.
-
-    Note: **More Noise**
+    # Final Thoughts
+    - The observed instances of excess gas usage support our hypothesis that **temperature** plays a significant role in driving gas consumption patterns.
+    - Integrate calendar-based features such as **month, week, weekday**, and **holidays** to capture seasonality and weekend effects.
+    - Add a **long-term trend** and **rolling mean** to account for overarching consumption patterns.
+    - Implement **lag-based features** (7-day and 30-day lags) to mitigate short-term volatility.
+    - Consider using the **delivery-minus-usage gap** as a potential feature to model operational risk.
     """)
     return
 
 
 @app.cell
-def _(alt, pivot_data):
-    alt.Chart(data=pivot_data.collect()).mark_rect().encode(
-        x="year(Date):Q",
-        y="month(Date):O",
-        color="sum(Usage):Q",
-    )
-    return
-
-
-@app.cell
-def _(lf2, pl):
+def _(lf2, mo, pl):
     lf3 = lf2.with_columns((pl.col("Delivery").cum_sum() - pl.col("Total Usage").cum_sum()).shift(1).fill_null(0).alias("Total Gas Before"))
-    lf3.collect().plot.line(x="Date", y="Total Gas Before")
-    return
+    dug_title = mo.md(r"""# Delivery vs Usage Gap""")
+    dug = lf3.collect().plot.line(x="Date", y="Total Gas Before")
+    assump = mo.md(r"""
+    - **Assumption:** The gas storage tank starts empty.
+    - **Observation:** The "Total Gas Before" metric goes negative at times, which is physically impossible. This indicates that the assumption of starting with an empty tank is incorrect, and there must be some initial gas in storage""")
 
-
-@app.cell
-def _(pd):
-    df = pd.read_parquet("/home/kumar/dgup/data/silver/uta_gas_usage.parquet")
-    df["Usage_Total"] = (
-        df["Usage - 1"] +
-        df["Usage - 2"] +
-        df["Usage - 2_1"]
-    )
-    df.head()
-    return (df,)
-
-
-@app.cell
-def _(alt, df, pd):
-
-    # Usage columns
-    usage_cols = ["Usage - 1", "Usage - 2", "Usage - 2_1", "Usage_Total"]
-
-    charts = []
-
-    for col in usage_cols:
-        # Create lag columns
-        temp = pd.DataFrame({
-            col: df[col],
-            "lag_1": df[col].shift(1),
-            "lag_7": df[col].shift(7),
-            "lag_30": df[col].shift(30)
-        })
-
-        # Correlation matrix
-        corr = temp[[col, "lag_1", "lag_7", "lag_30"]].corr()
-
-        # Convert to long format
-        corr_long = (
-            corr
-            .reset_index()
-            .melt(id_vars="index", var_name="Variable", value_name="Correlation")
-            .rename(columns={"index": "Lag"})
-        )
-
-        # Heatmap
-        heatmap = (
-            alt.Chart(corr_long)
-            .mark_rect()
-            .encode(
-                x=alt.X("Variable:N", title=""),
-                y=alt.Y("Lag:N", title=""),
-                color=alt.Color(
-                    "Correlation:Q",
-                    scale=alt.Scale(scheme="yellowgreenblue"),
-                    title="Correlation"
-                ),
-                tooltip=[
-                    alt.Tooltip("Lag:N"),
-                    alt.Tooltip("Variable:N"),
-                    alt.Tooltip("Correlation:Q", format=".3f")
-                ]
-            )
-            .properties(
-                title=f"Correlation Heatmap: {col} vs Lags",
-                width=250,
-                height=250
-            )
-        )
-
-        # Add text annotations (like annot=True)
-        text = (
-            alt.Chart(corr_long)
-            .mark_text(color="black")
-            .encode(
-                x="Variable:N",
-                y="Lag:N",
-                text=alt.Text("Correlation:Q", format=".3f")
-            )
-        )
-
-        charts.append(heatmap + text)
-
-    # Arrange charts in 2×2 grid
-    final_chart = (charts[0] | charts[1]) & (charts[2] | charts[3])
-
-    final_chart
-
-    return
-
-
-@app.cell
-def _():
+    mo.vstack([dug_title, mo.ui.altair_chart(dug), assump], gap="1")
     return
 
 
