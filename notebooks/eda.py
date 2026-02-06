@@ -8,12 +8,13 @@
 
 import marimo
 
-__generated_with = "0.19.7"
+__generated_with = "0.19.8"
 app = marimo.App(width="full")
 
 
 @app.cell
 def _():
+
     from typing import cast
 
     import altair as alt
@@ -21,13 +22,16 @@ def _():
     import polars as pl
     import polars.selectors as cs
     import datetime as dt
-    return alt, cast, cs, dt, mo, pl
+    import pandas as pd
+
+
+    return alt, cast, cs, dt, mo, pd, pl
 
 
 @app.cell
 def _(cast, pl):
     # Read uta_gas_usage.parquet using a Polars lazy frame
-    lf= cast("pl.LazyFrame", pl.scan_parquet("/home/vandy/Work/DASC5309/scot-forge/data/silver/uta_gas_usage.parquet"))
+    lf= cast("pl.LazyFrame", pl.scan_parquet("/home/kumar/dgup/data/silver/uta_gas_usage.parquet"))
 
     lf2 = lf.with_columns((pl.col("Usage - 1")+pl.col("Usage - 2")+pl.col("Usage - 2_1")).alias("Total Usage"))
     # lf2.collect_schema()
@@ -161,6 +165,97 @@ def _(alt, pivot_data):
 def _(lf2, pl):
     lf3 = lf2.with_columns((pl.col("Delivery").cum_sum() - pl.col("Total Usage").cum_sum()).shift(1).fill_null(0).alias("Total Gas Before"))
     lf3.collect().plot.line(x="Date", y="Total Gas Before")
+    return
+
+
+@app.cell
+def _(pd):
+    df = pd.read_parquet("/home/kumar/dgup/data/silver/uta_gas_usage.parquet")
+    df["Usage_Total"] = (
+        df["Usage - 1"] +
+        df["Usage - 2"] +
+        df["Usage - 2_1"]
+    )
+    df.head()
+    return (df,)
+
+
+@app.cell
+def _(alt, df, pd):
+
+    # Usage columns
+    usage_cols = ["Usage - 1", "Usage - 2", "Usage - 2_1", "Usage_Total"]
+
+    charts = []
+
+    for col in usage_cols:
+        # Create lag columns
+        temp = pd.DataFrame({
+            col: df[col],
+            "lag_1": df[col].shift(1),
+            "lag_7": df[col].shift(7),
+            "lag_30": df[col].shift(30)
+        })
+
+        # Correlation matrix
+        corr = temp[[col, "lag_1", "lag_7", "lag_30"]].corr()
+
+        # Convert to long format
+        corr_long = (
+            corr
+            .reset_index()
+            .melt(id_vars="index", var_name="Variable", value_name="Correlation")
+            .rename(columns={"index": "Lag"})
+        )
+
+        # Heatmap
+        heatmap = (
+            alt.Chart(corr_long)
+            .mark_rect()
+            .encode(
+                x=alt.X("Variable:N", title=""),
+                y=alt.Y("Lag:N", title=""),
+                color=alt.Color(
+                    "Correlation:Q",
+                    scale=alt.Scale(scheme="yellowgreenblue"),
+                    title="Correlation"
+                ),
+                tooltip=[
+                    alt.Tooltip("Lag:N"),
+                    alt.Tooltip("Variable:N"),
+                    alt.Tooltip("Correlation:Q", format=".3f")
+                ]
+            )
+            .properties(
+                title=f"Correlation Heatmap: {col} vs Lags",
+                width=250,
+                height=250
+            )
+        )
+
+        # Add text annotations (like annot=True)
+        text = (
+            alt.Chart(corr_long)
+            .mark_text(color="black")
+            .encode(
+                x="Variable:N",
+                y="Lag:N",
+                text=alt.Text("Correlation:Q", format=".3f")
+            )
+        )
+
+        charts.append(heatmap + text)
+
+    # Arrange charts in 2×2 grid
+    final_chart = (charts[0] | charts[1]) & (charts[2] | charts[3])
+
+    final_chart
+
+    return
+
+
+@app.cell
+def _():
     return
 
 
