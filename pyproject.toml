@@ -35,6 +35,8 @@ dependencies = [
     "marimo>=0.19.7",
     "numpy>=2.4.1",
     "polars[gpu]>=1.34.0",
+    "pyarrow>=23.0.0",
+    "statsmodels>=0.14.6",
 ]
 
 [project.urls]
@@ -118,3 +120,6 @@ dev = [
 
 [tool.uv]
 default-groups = ["maintain", "ci", "docs"]
+
+[tool.marimo.display]
+default_width = "full"
