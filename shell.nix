@@ -13,5 +13,6 @@ pkgs.mkShell {
     pkgs.python312
     pkgs.python311
     pkgs.python310
+    pkgs.nodejs_24
   ];
 }
