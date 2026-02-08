@@ -33,7 +33,7 @@ def _(cast, pl):
 
     lf2 = lf.with_columns((pl.col("Usage - 1")+pl.col("Usage - 2")+pl.col("Usage - 2_1")).alias("Total Usage"))
     # lf2.collect_schema()
-    return (lf2,)
+    return lf, lf2
 
 
 @app.cell
