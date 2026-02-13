@@ -47,6 +47,10 @@ ignore = [
 ]
 
 [lint.per-file-ignores]
+"notebooks/**.py" = [
+    "ANN202", # Missing type annotation for private function
+    "PLC0415", # `import` should be at the top-level of a file.
+]
 "src/**/cli.py" = [
     "T201",  # Print statement
 ]
