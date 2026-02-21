@@ -8,7 +8,7 @@
 
 import marimo
 
-__generated_with = "0.19.7"
+__generated_with = "0.19.9"
 app = marimo.App(width="full")
 
 
@@ -22,8 +22,10 @@ def _():
     import pandas as pd
     import polars as pl
     import polars.selectors as cs
+    import statsmodels.tsa.stattools as tsa
+    import statsmodels.api as sm
 
-    return alt, cast, cs, dt, mo, pd, pl
+    return alt, cast, cs, dt, mo, pd, pl, tsa
 
 
 @app.cell
@@ -31,9 +33,9 @@ def _(cast, pl):
     # Read uta_gas_usage.parquet using a Polars lazy frame
     lf = cast("pl.LazyFrame", pl.scan_parquet("/home/vandy/Work/DASC5309/scot-forge/data/silver/uta_gas_usage.parquet"))
 
-    lf2 = lf.with_columns((pl.col("Usage - 1") + pl.col("Usage - 2") + pl.col("Usage - 2_1")).alias("Total Usage"))
+    lf2 = lf.fill_null(0).with_columns((pl.col("Usage - 1") + pl.col("Usage - 2") + pl.col("Usage - 2_1")).alias("Total Usage"))
     # lf2.collect_schema()
-    return lf, lf2
+    return (lf2,)
 
 
 @app.cell
@@ -153,6 +155,7 @@ def _(
     )
 
     mo.vstack([title, desc, mo.hstack([multiselect_types, number, multiselect_scale]), _()], gap="1")
+    return
 
 
 @app.cell
@@ -215,6 +218,7 @@ def _(alt, multiselect_types, pivot_data, pl):
 
     # Display the result
     boxplot_chart()
+    return
 
 
 @app.cell
@@ -237,11 +241,13 @@ def _(alt, mo, pivot_data):
     """)
 
     mo.hstack([hist, hist_desc], widths=[0.65, 0.35])
+    return
 
 
 @app.cell
 def _(mo, stt_desc, stt_title):
     mo.callout(mo.vstack([stt_title, stt_desc]), kind="info")
+    return
 
 
 @app.cell
@@ -316,6 +322,7 @@ def _(alt, mo, multiselect_types, pivot_data, pl, radio):
         return base + text
 
     mo.hstack([heatmap_view(option=radio.value), radio], widths=[1, 0.15])
+    return
 
 
 @app.cell
@@ -413,6 +420,7 @@ def _(alt, lf2, mo, multiselect_types, pd):
             mo.vstack([multiselect_types.center(), mo.ui.altair_chart(heatmap + text).center()]),
         ],
     )
+    return
 
 
 @app.cell
@@ -474,6 +482,7 @@ def _(alt, lf2, mo, pl):
     """)
 
     mo.hstack([mo.ui.altair_chart(corr_chart).center(), mo.vstack([corr_title, corr_desc])])
+    return
 
 
 @app.cell
@@ -486,6 +495,7 @@ def _(mo):
     - Implement **lag-based features** (7-day and 30-day lags) to mitigate short-term volatility.
     - Consider using the **delivery-minus-usage gap** as a potential feature to model operational risk.
     """)
+    return
 
 
 @app.cell
@@ -503,6 +513,106 @@ def _(lf2, mo, pl):
     - **Observation:** The "Total Gas Before" metric goes negative at times, which is physically impossible. This indicates that the assumption of starting with an empty tank is incorrect, and there must be some initial gas in storage""")
 
     mo.vstack([dug_title, mo.ui.altair_chart(dug), assump], gap="1")
+    return
+
+
+@app.cell
+def _(mo):
+    danger = mo.icon(icon_name="jam:triangle-danger", color="#FF0000")
+    mo.md(f"""
+    # Check for stationarity
+
+    - Constant Mean
+    - Constant Variance
+    - {danger}**<span style="color:#FF0000">Seasonality</span>**
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    # ACF & PACF
+    """)
+    return
+
+
+@app.cell
+def _(mo):
+    lag_slider = mo.ui.slider(7, 3500, value=400)
+    return (lag_slider,)
+
+
+@app.cell
+def _(lag_slider, pl, source, tsa):
+    acf_tsa = tsa.acf(source.sort(by="Date")["Usage"].to_numpy(), nlags=lag_slider.value, alpha=0.05)
+    acf_df = pl.DataFrame({
+        "lag": range(len(acf_tsa[0])),
+        "correlation": acf_tsa[0],
+        "lower_ci": acf_tsa[1][:, 0] - acf_tsa[0],
+        "upper_ci": acf_tsa[1][:, 1] - acf_tsa[0],   
+    })
+    return (acf_df,)
+
+
+@app.cell
+def _(lag_slider, pl, source, tsa):
+    pacf_tsa = tsa.pacf(source.sort(by="Date")["Usage"].to_numpy(), nlags=lag_slider.value, alpha=0.05)
+    pacf_df = pl.DataFrame({
+        "lag": range(len(pacf_tsa[0])),
+        "correlation": pacf_tsa[0],
+        "lower_ci": pacf_tsa[1][:, 0] - pacf_tsa[0],
+        "upper_ci": pacf_tsa[1][:, 1] - pacf_tsa[0],   
+    })
+    return (pacf_df,)
+
+
+@app.cell
+def _(acf_df, mo, pacf_df):
+    corr_dropdown = mo.ui.radio({"acf": acf_df, "pacf": pacf_df}, value="acf", inline=True)
+    return (corr_dropdown,)
+
+
+@app.cell
+def _(alt, corr_dropdown):
+    bars = (
+        alt.Chart(corr_dropdown.value)
+        .mark_bar()
+        .encode(
+            x=alt.X(field='lag', type='quantitative'),
+            y=alt.Y(field='correlation', type='quantitative'),
+            tooltip=[
+                alt.Tooltip(field='lag', format=',.0f'),
+                alt.Tooltip(field='correlation', format=',.2f')
+            ]
+        )
+    )
+
+    ci = (
+        alt.Chart(corr_dropdown.value)
+        .mark_area(color='steelblue', opacity=0.5)
+        .encode(
+            x=alt.X('lag:Q'),
+            y=alt.Y('lower_ci:Q'),
+            y2=alt.Y2('upper_ci:Q'),
+            tooltip=[
+                alt.Tooltip('lower_ci:Q', format=',.2f', title='lower_ci'),
+                alt.Tooltip('upper_ci:Q', format=',.2f', title='upper_ci')
+            ]
+        )
+    )
+
+    acf_chart = alt.layer(bars, ci).properties(
+        height=290,
+        width='container',
+    ).interactive(bind_y=False)
+    return (acf_chart,)
+
+
+@app.cell
+def _(acf_chart, corr_dropdown, lag_slider, mo, multiselect_types):
+    mo.vstack([mo.hstack([corr_dropdown, lag_slider ,multiselect_types]), acf_chart])
+    return
 
 
 if __name__ == "__main__":

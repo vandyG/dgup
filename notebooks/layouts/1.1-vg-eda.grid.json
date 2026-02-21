@@ -1,0 +1,58 @@
+{
+  "type": "grid",
+  "data": {
+    "columns": 42,
+    "rowHeight": 22,
+    "maxWidth": 1400,
+    "bordered": true,
+    "cells": [
+      {
+        "position": null
+      },
+      {
+        "position": null
+      },
+      {
+        "position": null
+      },
+      {
+        "position": null
+      },
+      {
+        "position": null
+      },
+      {
+        "position": null
+      },
+      {
+        "position": [
+          0,
+          0,
+          42,
+          17
+        ],
+        "scrollable": true
+      },
+      {
+        "position": null
+      },
+      {
+        "position": [
+          0,
+          17,
+          24,
+          18
+        ]
+      },
+      {
+        "position": [
+          24,
+          17,
+          18,
+          16
+        ],
+        "scrollable": true
+      }
+    ]
+  }
+}
