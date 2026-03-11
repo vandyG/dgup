@@ -1,14 +1,14 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
-#     "marimo>=0.19.0",
+#     "marimo>=0.19.10",
 #     "pyzmq>=27.1.0",
 # ]
 # ///
 
 import marimo
 
-__generated_with = "0.19.9"
+__generated_with = "0.20.4"
 app = marimo.App(width="full")
 
 
@@ -22,8 +22,9 @@ def _():
     import pandas as pd
     import polars as pl
     import polars.selectors as cs
-    import statsmodels.tsa.stattools as tsa
     import statsmodels.api as sm
+    import statsmodels.tsa.stattools as tsa
+
 
     return alt, cast, cs, dt, mo, pd, pl, tsa
 
@@ -500,12 +501,15 @@ def _(mo):
 
 @app.cell
 def _(lf2, mo, pl):
+    delivery_usage_diff = (pl.col("Delivery").cum_sum() - pl.col("Total Usage").cum_sum())
     lf3 = lf2.with_columns(
-        (pl.col("Delivery").cum_sum() - pl.col("Total Usage").cum_sum())
+        delivery_usage_diff
         .shift(1)
         .fill_null(0)
         .alias("Total Gas Before"),
+        delivery_usage_diff.fill_null(0).alias("Total Gas After"),
     )
+
     dug_title = mo.md(r"""# Delivery vs Usage Gap""")
     dug = lf3.collect().plot.line(x="Date", y="Total Gas Before")
     assump = mo.md(r"""
@@ -513,6 +517,15 @@ def _(lf2, mo, pl):
     - **Observation:** The "Total Gas Before" metric goes negative at times, which is physically impossible. This indicates that the assumption of starting with an empty tank is incorrect, and there must be some initial gas in storage""")
 
     mo.vstack([dug_title, mo.ui.altair_chart(dug), assump], gap="1")
+    return (lf3,)
+
+
+@app.cell
+def _(lf3, pl):
+    lf3.with_columns(
+        pl.col("Total Gas Before") + 81569.123976,
+        pl.col("Total Gas After") + 81569.123976,
+    )
     return
 
 
