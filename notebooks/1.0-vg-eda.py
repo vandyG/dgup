@@ -521,6 +521,12 @@ def _(lf2, mo, pl):
 
 
 @app.cell
+def _(lf2, pl):
+    lf2.select(pl.col("Total Usage").mean())
+    return
+
+
+@app.cell
 def _(lf3, pl):
     lf3.with_columns(
         pl.col("Total Gas Before") + 81569.123976,
