@@ -7,6 +7,7 @@ app = marimo.App(width="full")
 @app.cell
 def _():
     import datetime as dt
+    from pathlib import Path as path_cls
     from typing import cast
 
     import altair as alt
@@ -17,13 +18,14 @@ def _():
     import statsmodels.tsa.stattools as tsa
     import statsmodels.api as sm
 
-    return cast, cs, mo, pl
+    return cast, cs, mo, path_cls, pl
 
 
 @app.cell
-def _(cast, cs, pl):
+def _(cast, cs, path_cls, pl):
     # Read uta_gas_usage.parquet using a Polars lazy frame
-    lf = cast("pl.LazyFrame", pl.scan_parquet("/home/vandy/Work/DASC5309/scot-forge/data/silver/uta_gas_usage.parquet"))
+    data_path = path_cls("data/silver/uta_gas_usage.parquet")
+    lf = cast("pl.LazyFrame", pl.scan_parquet(data_path))
     lf2 = lf.fill_null(0).with_columns((pl.col("Usage - 1") + pl.col("Usage - 2") + pl.col("Usage - 2_1")).alias("Total Usage"))
     pivot_data = lf2.select(pl.exclude(["Nom", "Delivery"])).unpivot(
         index="Date",

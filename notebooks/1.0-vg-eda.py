@@ -15,6 +15,7 @@ app = marimo.App(width="full")
 @app.cell
 def _():
     import datetime as dt
+    from pathlib import Path
     from typing import cast
 
     import altair as alt
@@ -22,19 +23,20 @@ def _():
     import pandas as pd
     import polars as pl
     import polars.selectors as cs
-    import statsmodels.api as sm
     import statsmodels.tsa.stattools as tsa
 
-
-    return alt, cast, cs, dt, mo, pd, pl, tsa
+    return Path, alt, cast, cs, dt, mo, pd, pl, tsa
 
 
 @app.cell
-def _(cast, pl):
+def _(Path, pl):
     # Read uta_gas_usage.parquet using a Polars lazy frame
-    lf = cast("pl.LazyFrame", pl.scan_parquet("/home/vandy/Work/DASC5309/scot-forge/data/silver/uta_gas_usage.parquet"))
+    data_path = Path("data/silver/uta_gas_usage.parquet")
+    lf = pl.scan_parquet(data_path)
 
-    lf2 = lf.fill_null(0).with_columns((pl.col("Usage - 1") + pl.col("Usage - 2") + pl.col("Usage - 2_1")).alias("Total Usage"))
+    lf2 = lf.fill_null(0).with_columns(
+        (pl.col("Usage - 1") + pl.col("Usage - 2") + pl.col("Usage - 2_1")).alias("Total Usage")
+    )
     # lf2.collect_schema()
     return (lf2,)
 
@@ -52,8 +54,9 @@ def _(cs, lf2, pl):
 
 
 @app.cell
-def _(mo, pivot_data):
-    usage_types = pivot_data.select("Usage Type").unique().collect().to_series().to_list()
+def _(cast, mo, pivot_data):
+    usage_types_df = pivot_data.select("Usage Type").unique().collect()
+    usage_types = cast("pl.DataFrame", usage_types_df).get_column("Usage Type").to_list()
     multiselect_types = mo.ui.dropdown(options=usage_types, label="Select Usage Types", value="Total Usage")
     return (multiselect_types,)
 
@@ -330,7 +333,7 @@ def _(alt, mo, multiselect_types, pivot_data, pl, radio):
 def _(alt, lf2, mo, multiselect_types, pd):
     col = multiselect_types.value
 
-    # df = pd.read_parquet("/home/vandy/Work/DASC5309/scot-forge/data/silver/uta_gas_usage.parquet")
+    # df = pd.read_parquet("data/silver/uta_gas_usage.parquet")
     # df["Total Usage"] = (
     #     df["Usage - 1"] +
     #     df["Usage - 2"] +
@@ -501,12 +504,9 @@ def _(mo):
 
 @app.cell
 def _(lf2, mo, pl):
-    delivery_usage_diff = (pl.col("Delivery").cum_sum() - pl.col("Total Usage").cum_sum())
+    delivery_usage_diff = pl.col("Delivery").cum_sum() - pl.col("Total Usage").cum_sum()
     lf3 = lf2.with_columns(
-        delivery_usage_diff
-        .shift(1)
-        .fill_null(0)
-        .alias("Total Gas Before"),
+        delivery_usage_diff.shift(1).fill_null(0).alias("Total Gas Before"),
         delivery_usage_diff.fill_null(0).alias("Total Gas After"),
     )
 
@@ -565,24 +565,28 @@ def _(mo):
 @app.cell
 def _(lag_slider, pl, source, tsa):
     acf_tsa = tsa.acf(source.sort(by="Date")["Usage"].to_numpy(), nlags=lag_slider.value, alpha=0.05)
-    acf_df = pl.DataFrame({
-        "lag": range(len(acf_tsa[0])),
-        "correlation": acf_tsa[0],
-        "lower_ci": acf_tsa[1][:, 0] - acf_tsa[0],
-        "upper_ci": acf_tsa[1][:, 1] - acf_tsa[0],   
-    })
+    acf_df = pl.DataFrame(
+        {
+            "lag": range(len(acf_tsa[0])),
+            "correlation": acf_tsa[0],
+            "lower_ci": acf_tsa[1][:, 0] - acf_tsa[0],
+            "upper_ci": acf_tsa[1][:, 1] - acf_tsa[0],
+        }
+    )
     return (acf_df,)
 
 
 @app.cell
 def _(lag_slider, pl, source, tsa):
     pacf_tsa = tsa.pacf(source.sort(by="Date")["Usage"].to_numpy(), nlags=lag_slider.value, alpha=0.05)
-    pacf_df = pl.DataFrame({
-        "lag": range(len(pacf_tsa[0])),
-        "correlation": pacf_tsa[0],
-        "lower_ci": pacf_tsa[1][:, 0] - pacf_tsa[0],
-        "upper_ci": pacf_tsa[1][:, 1] - pacf_tsa[0],   
-    })
+    pacf_df = pl.DataFrame(
+        {
+            "lag": range(len(pacf_tsa[0])),
+            "correlation": pacf_tsa[0],
+            "lower_ci": pacf_tsa[1][:, 0] - pacf_tsa[0],
+            "upper_ci": pacf_tsa[1][:, 1] - pacf_tsa[0],
+        }
+    )
     return (pacf_df,)
 
 
@@ -598,39 +602,43 @@ def _(alt, corr_dropdown):
         alt.Chart(corr_dropdown.value)
         .mark_bar()
         .encode(
-            x=alt.X(field='lag', type='quantitative'),
-            y=alt.Y(field='correlation', type='quantitative'),
+            x=alt.X(field="lag", type="quantitative"),
+            y=alt.Y(field="correlation", type="quantitative"),
             tooltip=[
-                alt.Tooltip(field='lag', format=',.0f'),
-                alt.Tooltip(field='correlation', format=',.2f')
-            ]
+                alt.Tooltip(field="lag", format=",.0f"),
+                alt.Tooltip(field="correlation", format=",.2f"),
+            ],
         )
     )
 
     ci = (
         alt.Chart(corr_dropdown.value)
-        .mark_area(color='steelblue', opacity=0.5)
+        .mark_area(color="steelblue", opacity=0.5)
         .encode(
-            x=alt.X('lag:Q'),
-            y=alt.Y('lower_ci:Q'),
-            y2=alt.Y2('upper_ci:Q'),
+            x=alt.X("lag:Q"),
+            y=alt.Y("lower_ci:Q"),
+            y2=alt.Y2("upper_ci:Q"),
             tooltip=[
-                alt.Tooltip('lower_ci:Q', format=',.2f', title='lower_ci'),
-                alt.Tooltip('upper_ci:Q', format=',.2f', title='upper_ci')
-            ]
+                alt.Tooltip("lower_ci:Q", format=",.2f", title="lower_ci"),
+                alt.Tooltip("upper_ci:Q", format=",.2f", title="upper_ci"),
+            ],
         )
     )
 
-    acf_chart = alt.layer(bars, ci).properties(
-        height=290,
-        width='container',
-    ).interactive(bind_y=False)
+    acf_chart = (
+        alt.layer(bars, ci)
+        .properties(
+            height=290,
+            width="container",
+        )
+        .interactive(bind_y=False)
+    )
     return (acf_chart,)
 
 
 @app.cell
 def _(acf_chart, corr_dropdown, lag_slider, mo, multiselect_types):
-    mo.vstack([mo.hstack([corr_dropdown, lag_slider ,multiselect_types]), acf_chart])
+    mo.vstack([mo.hstack([corr_dropdown, lag_slider, multiselect_types]), acf_chart])
     return
 
 
