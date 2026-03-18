@@ -1,0 +1,20 @@
+{
+  "artifact_version": "v2",
+  "model_names": [
+    "hist_gbm",
+    "lightgbm",
+    "lstm",
+    "mlp",
+    "ridge",
+    "seasonal_naive_7",
+    "timesnet",
+    "transformer",
+    "xgboost"
+  ],
+  "series_names": [
+    "Total Usage",
+    "Usage - 1",
+    "Usage - 2",
+    "Usage - 2_1"
+  ]
+}
