@@ -9,6 +9,7 @@
 ## Build And Test
 
 - Prefer the project wrapper commands in `scripts/make` or the matching VS Code tasks instead of ad hoc tool invocations.
+- Use `uv` for Python dependency installation and environment synchronization; do not introduce `pip`, `poetry`, `pdm`, or other package-manager install workflows for this project.
 - Setup environments with `scripts/make setup`.
 - Format code with `scripts/make format`.
 - Run the full validation suite with `scripts/make check`.
@@ -25,6 +26,7 @@
 
 - If you promote a new public symbol, export it from `src/dgup/__init__.py`, update `__all__`, and account for the API checks in `tests/test_api.py`.
 - If you change CLI behavior or user-facing output, update `tests/test_cli.py` and the relevant docs in `README.md` or `docs/`.
+- If you add or rely on new environment variables, declare them in `.envrc` as part of the same change.
 - Notebooks in `notebooks/` are exploratory artifacts with looser lint rules than package code; keep production changes in `src/` and `tests/` unless the task is explicitly notebook-focused.
 - For notebook work in `notebooks/`, follow the existing marimo stack used in the repo: prefer `polars` for data loading and transformation, and prefer `altair` for visualization.
 - In notebook tasks, avoid introducing `pandas` or other plotting libraries unless the task explicitly requires them or the existing notebook already depends on them.
