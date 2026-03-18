@@ -31,13 +31,19 @@ classifiers = [
 dependencies = [
     "altair>=6.0.0",
     "fastexcel>=0.19.0",
+    "flax>=0.12.5",
     "jax[cuda13]>=0.8",
+    "keras>=3.13.2",
+    "lightgbm>=4.6.0",
     "marimo",
     "matplotlib>=3.10.8",
     "numpy>=2.4.1",
+    "optax>=0.2.6",
     "polars[gpu]>=1.34.0",
     "pyarrow>=23.0.0",
+    "scikit-learn>=1.8.0",
     "statsmodels>=0.14.6",
+    "xgboost>=3.2.0",
 ]
 
 [project.urls]
@@ -109,8 +115,6 @@ ci = [
     "mkdocs-minify-plugin>=0.8",
     "mkdocs-section-index>=0.3",
     "mkdocstrings[python]>=0.29",
-    # YORE: EOL 3.10: Remove line.
-    "tomli>=2.0; python_version < '3.11'",
 ]
 dev = [
     "ipykernel>=7.1.0",
