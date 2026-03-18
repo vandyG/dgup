@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import polars as pl
 
@@ -13,6 +13,9 @@ from dgup._internal.tariffs import (
     _MIN_INVENTORY_RATES,
     _STORAGE_CAPACITY,
 )
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def _date_expression(frame: pl.DataFrame) -> pl.Expr:
@@ -85,7 +88,7 @@ def _reconstruct_storage(
         )
         .with_columns(
             (pl.col("Date").dt.month() != pl.col("Date").shift(-1).dt.month())
-            .fill_null(True)
+            .fill_null(value=True)
             .alias("is_month_end"),
         )
         .with_columns(
@@ -101,7 +104,7 @@ def _reconstruct_storage(
             ).alias("above_max_inventory"),
         )
     )
-    return prepared.collect()
+    return prepared.collect()  # ty:ignore[invalid-return-type]
 
 
 def _load_storage_series(

@@ -28,4 +28,4 @@ def _scan_gas_usage(data_path: str | Path | None = None) -> pl.LazyFrame:
 
 
 def _read_gas_usage(data_path: str | Path | None = None) -> pl.DataFrame:
-    return _scan_gas_usage(data_path).collect()
+    return _scan_gas_usage(data_path).collect()  # ty:ignore[invalid-return-type]
