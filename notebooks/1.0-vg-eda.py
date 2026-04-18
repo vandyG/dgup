@@ -528,10 +528,284 @@ def _(lf2, pl):
 
 @app.cell
 def _(lf3, pl):
-    lf3.with_columns(
-        pl.col("Total Gas Before") + 81569.123976,
-        pl.col("Total Gas After") + 81569.123976,
+    capacity = 144841.0
+    initial_inventory = 81569.123976
+
+    daily_limits = {
+        1: {"inj_min": 0.00, "inj_max": 0.0030, "wd_min": 0.00, "wd_max": 0.0100},
+        2: {"inj_min": 0.00, "inj_max": 0.0030, "wd_min": 0.00, "wd_max": 0.0085},
+        3: {"inj_min": 0.00, "inj_max": 0.0030, "wd_min": 0.00, "wd_max": 0.0060},
+        4: {"inj_min": 0.00, "inj_max": 0.0030, "wd_min": 0.00, "wd_max": 0.0030},
+        5: {"inj_min": 0.00, "inj_max": 0.0045, "wd_min": 0.00, "wd_max": 0.0030},
+        6: {"inj_min": 0.00, "inj_max": 0.0050, "wd_min": 0.00, "wd_max": 0.0030},
+        7: {"inj_min": 0.00, "inj_max": 0.0045, "wd_min": 0.00, "wd_max": 0.0030},
+        8: {"inj_min": 0.00, "inj_max": 0.0070, "wd_min": 0.00, "wd_max": 0.0030},
+        9: {"inj_min": 0.00, "inj_max": 0.0070, "wd_min": 0.00, "wd_max": 0.0030},
+        10: {"inj_min": 0.00, "inj_max": 0.0070, "wd_min": 0.00, "wd_max": 0.0030},
+        11: {"inj_min": 0.00, "inj_max": 0.0030, "wd_min": 0.00, "wd_max": 0.0040},
+        12: {"inj_min": 0.00, "inj_max": 0.0030, "wd_min": 0.00, "wd_max": 0.0085},
+    }
+
+    month_end_limits = {
+        1: {"min": 0.35, "max": 0.45},
+        2: {"min": 0.10, "max": 0.25},
+        3: {"min": 0.00, "max": 0.10},
+        4: {"min": 0.00, "max": 0.10},
+        5: {"min": 0.10, "max": 0.20},
+        6: {"min": 0.20, "max": 0.30},
+        7: {"min": 0.30, "max": 0.40},
+        8: {"min": 0.50, "max": 0.60},
+        9: {"min": 0.70, "max": 0.80},
+        10: {"min": 0.85, "max": 1.00},
+        11: {"min": 0.75, "max": 0.90},
+        12: {"min": 0.55, "max": 0.70},
+    }
+
+    month = pl.col("Date").dt.month()
+    flow = pl.col("Total Gas Before") - pl.col("Total Gas After")
+
+    lf4 = (
+        lf3
+        .with_columns(
+            (pl.col("Total Gas Before") + initial_inventory).alias("Total Gas Before"),
+            (pl.col("Total Gas After") + initial_inventory).alias("Total Gas After"),
+        )
+        .with_columns(
+            month.alias("Month"),
+            flow.alias("Flow"),
+            pl.when(month == 1).then(daily_limits[1]["inj_min"]).when(month == 2).then(daily_limits[2]["inj_min"]).when(month == 3).then(daily_limits[3]["inj_min"]).when(month == 4).then(daily_limits[4]["inj_min"]).when(month == 5).then(daily_limits[5]["inj_min"]).when(month == 6).then(daily_limits[6]["inj_min"]).when(month == 7).then(daily_limits[7]["inj_min"]).when(month == 8).then(daily_limits[8]["inj_min"]).when(month == 9).then(daily_limits[9]["inj_min"]).when(month == 10).then(daily_limits[10]["inj_min"]).when(month == 11).then(daily_limits[11]["inj_min"]).otherwise(daily_limits[12]["inj_min"]).alias("Daily Injection Lower Bound (%)"),
+            pl.when(month == 1).then(daily_limits[1]["inj_max"]).when(month == 2).then(daily_limits[2]["inj_max"]).when(month == 3).then(daily_limits[3]["inj_max"]).when(month == 4).then(daily_limits[4]["inj_max"]).when(month == 5).then(daily_limits[5]["inj_max"]).when(month == 6).then(daily_limits[6]["inj_max"]).when(month == 7).then(daily_limits[7]["inj_max"]).when(month == 8).then(daily_limits[8]["inj_max"]).when(month == 9).then(daily_limits[9]["inj_max"]).when(month == 10).then(daily_limits[10]["inj_max"]).when(month == 11).then(daily_limits[11]["inj_max"]).otherwise(daily_limits[12]["inj_max"]).alias("Daily Injection Upper Bound (%)"),
+            pl.when(month == 1).then(daily_limits[1]["wd_min"]).when(month == 2).then(daily_limits[2]["wd_min"]).when(month == 3).then(daily_limits[3]["wd_min"]).when(month == 4).then(daily_limits[4]["wd_min"]).when(month == 5).then(daily_limits[5]["wd_min"]).when(month == 6).then(daily_limits[6]["wd_min"]).when(month == 7).then(daily_limits[7]["wd_min"]).when(month == 8).then(daily_limits[8]["wd_min"]).when(month == 9).then(daily_limits[9]["wd_min"]).when(month == 10).then(daily_limits[10]["wd_min"]).when(month == 11).then(daily_limits[11]["wd_min"]).otherwise(daily_limits[12]["wd_min"]).alias("Daily Withdrawal Lower Bound (%)"),
+            pl.when(month == 1).then(daily_limits[1]["wd_max"]).when(month == 2).then(daily_limits[2]["wd_max"]).when(month == 3).then(daily_limits[3]["wd_max"]).when(month == 4).then(daily_limits[4]["wd_max"]).when(month == 5).then(daily_limits[5]["wd_max"]).when(month == 6).then(daily_limits[6]["wd_max"]).when(month == 7).then(daily_limits[7]["wd_max"]).when(month == 8).then(daily_limits[8]["wd_max"]).when(month == 9).then(daily_limits[9]["wd_max"]).when(month == 10).then(daily_limits[10]["wd_max"]).when(month == 11).then(daily_limits[11]["wd_max"]).otherwise(daily_limits[12]["wd_max"]).alias("Daily Withdrawal Upper Bound (%)"),
+            pl.when(month == 1).then(month_end_limits[1]["min"]).when(month == 2).then(month_end_limits[2]["min"]).when(month == 3).then(month_end_limits[3]["min"]).when(month == 4).then(month_end_limits[4]["min"]).when(month == 5).then(month_end_limits[5]["min"]).when(month == 6).then(month_end_limits[6]["min"]).when(month == 7).then(month_end_limits[7]["min"]).when(month == 8).then(month_end_limits[8]["min"]).when(month == 9).then(month_end_limits[9]["min"]).when(month == 10).then(month_end_limits[10]["min"]).when(month == 11).then(month_end_limits[11]["min"]).otherwise(month_end_limits[12]["min"]).alias("Month End Lower Bound (%)"),
+            pl.when(month == 1).then(month_end_limits[1]["max"]).when(month == 2).then(month_end_limits[2]["max"]).when(month == 3).then(month_end_limits[3]["max"]).when(month == 4).then(month_end_limits[4]["max"]).when(month == 5).then(month_end_limits[5]["max"]).when(month == 6).then(month_end_limits[6]["max"]).when(month == 7).then(month_end_limits[7]["max"]).when(month == 8).then(month_end_limits[8]["max"]).when(month == 9).then(month_end_limits[9]["max"]).when(month == 10).then(month_end_limits[10]["max"]).when(month == 11).then(month_end_limits[11]["max"]).otherwise(month_end_limits[12]["max"]).alias("Month End Upper Bound (%)"),
+        )
+        .with_columns(
+            (pl.col("Daily Injection Lower Bound (%)") * capacity).alias("Daily Injection Lower Bound"),
+            (pl.col("Daily Injection Upper Bound (%)") * capacity).alias("Daily Injection Upper Bound"),
+            (pl.col("Daily Withdrawal Lower Bound (%)") * capacity).alias("Daily Withdrawal Lower Bound"),
+            (pl.col("Daily Withdrawal Upper Bound (%)") * capacity).alias("Daily Withdrawal Upper Bound"),
+            (pl.col("Month End Lower Bound (%)") * capacity).alias("Month End Lower Bound"),
+            (pl.col("Month End Upper Bound (%)") * capacity).alias("Month End Upper Bound"),
+        )
+        .with_columns(
+            pl.when(pl.col("Flow") >= 0)
+            .then(
+                (pl.col("Flow") < pl.col("Daily Injection Lower Bound"))
+                | (pl.col("Flow") > pl.col("Daily Injection Upper Bound"))
+            )
+            .otherwise(
+                (pl.col("Flow") < -pl.col("Daily Withdrawal Upper Bound"))
+                | (pl.col("Flow") > -pl.col("Daily Withdrawal Lower Bound"))
+            )
+            .alias("Daily Penalty Flag"),
+            pl.col("Date").dt.month_end().eq(pl.col("Date")).alias("Is Month End"),
+        )
+        .with_columns(
+            (
+                pl.col("Is Month End")
+                & (
+                    (pl.col("Total Gas After") < pl.col("Month End Lower Bound"))
+                    | (pl.col("Total Gas After") > pl.col("Month End Upper Bound"))
+                )
+            ).alias("Month End Penalty Flag"),
+        )
     )
+
+    lf4.select(
+        [
+            "Date",
+            "Total Gas Before",
+            "Total Gas After",
+            "Flow",
+            "Daily Penalty Flag",
+            "Month End Penalty Flag",
+            "Daily Injection Lower Bound",
+            "Daily Injection Upper Bound",
+            "Daily Withdrawal Lower Bound",
+            "Daily Withdrawal Upper Bound",
+            "Month End Lower Bound",
+            "Month End Upper Bound",
+        ]
+    )
+    return capacity, daily_limits, lf4, month_end_limits
+
+
+@app.cell
+def _(lf4, pl):
+    lf4.filter(pl.col("Month End Penalty Flag"))
+    return
+
+
+@app.cell
+def _():
+    return
+
+
+@app.cell
+def _(capacity, daily_limits, lf4, month_end_limits, pd, pl):
+    import numpy as np
+    # import pandas as pd
+
+    # Prototype controller: decide next-day Delivery to minimize penalties with higher weight on month-end violations.
+    ops_df = lf4.select(["Date", "Month", "Total Usage", "Total Gas Before"]).collect().sort("Date").to_pandas()
+    ops_df["Date"] = pd.to_datetime(ops_df["Date"])
+
+    ops_df["usage_fcst"] = 0.6 * ops_df["Total Usage"].shift(1) + 0.4 * ops_df["Total Usage"].shift(7)
+    ops_df["usage_fcst"] = ops_df["usage_fcst"].fillna(ops_df["Total Usage"].expanding().mean())
+
+    err = (ops_df["Total Usage"] - ops_df["usage_fcst"]).abs().expanding().mean().fillna(0.0)
+    ops_df["usage_fcst_low"] = (ops_df["usage_fcst"] - 1.28 * err).clip(lower=0.0)
+    ops_df["usage_fcst_high"] = ops_df["usage_fcst"] + 1.28 * err
+
+    month_key = ops_df["Date"].dt.to_period("M")
+    ops_df["days_to_month_end"] = month_key.groupby(month_key).transform(lambda s: np.arange(len(s), 0, -1))
+
+    def _daily_units(m):
+        lim = daily_limits[int(m)]
+        return lim["inj_max"] * capacity, lim["wd_max"] * capacity
+
+    def _month_end_units(m):
+        lim = month_end_limits[int(m)]
+        return lim["min"] * capacity, lim["max"] * capacity
+
+    sim = []
+    inv_before = float(ops_df.iloc[0]["Total Gas Before"])
+
+    for _, row in ops_df.iterrows():
+        m = int(row["Month"])
+        usage = float(row["Total Usage"])
+        fcst = float(row["usage_fcst"])
+        fcst_low = float(row["usage_fcst_low"])
+        fcst_high = float(row["usage_fcst_high"])
+        n_left = int(row["days_to_month_end"])
+
+        inj_max_u, wd_max_u = _daily_units(m)
+        me_low_u, me_high_u = _month_end_units(m)
+
+        target = 0.5 * (me_low_u + me_high_u)
+        required_net = (target - inv_before) / max(n_left, 1)
+        urgency = 1.25 if n_left <= 7 else 1.0
+        desired_net = max(-wd_max_u, min(inj_max_u, urgency * required_net))
+
+        d_raw = fcst + desired_net
+        d_low = fcst_high - wd_max_u
+        d_high = fcst_low + inj_max_u
+        delivery = max(d_low, min(d_high, d_raw))
+
+        net_flow = delivery - usage
+        inv_after = inv_before + net_flow
+        daily_pen = (net_flow < -wd_max_u) or (net_flow > inj_max_u)
+        is_month_end = bool(row["Date"].is_month_end)
+        month_pen = bool(is_month_end and ((inv_after < me_low_u) or (inv_after > me_high_u)))
+
+        sim.append(
+            {
+                "Date": row["Date"],
+                "Usage": usage,
+                "Forecast Usage": fcst,
+                "Recommended Delivery": delivery,
+                "Net Flow": net_flow,
+                "Inventory Before": inv_before,
+                "Inventory After": inv_after,
+                "Daily Upper": inj_max_u,
+                "Daily Lower": -wd_max_u,
+                "Month End Lower": me_low_u,
+                "Month End Upper": me_high_u,
+                "Is Month End": is_month_end,
+                "Daily Penalty": daily_pen,
+                "Month End Penalty": month_pen,
+            }
+        )
+
+        inv_before = inv_after
+
+    policy_df = pl.DataFrame(sim)
+    policy_df.select(
+        [
+            pl.len().alias("Days"),
+            pl.col("Daily Penalty").sum().alias("Daily Penalty Days"),
+            pl.col("Month End Penalty").sum().alias("Month End Penalty Months"),
+            (pl.col("Daily Penalty").sum() + 5 * pl.col("Month End Penalty").sum()).alias("Weighted Cost (Month-End x5)"),
+        ]
+    )
+    return (policy_df,)
+
+
+@app.cell
+def _(alt, mo, policy_df):
+    policy_pd = policy_df.to_pandas()
+    mode = mo.ui.radio(options=["Daily Net Flow", "Month-End Inventory"], value="Daily Net Flow", inline=True)
+    brush_policy = alt.selection_interval(encodings=["x"])
+    return brush_policy, mode, policy_pd
+
+
+@app.cell
+def _(alt, brush_policy, mo, mode, pl, policy_df, policy_pd):
+
+    flow_bounds_long = policy_df.select(["Date", "Daily Lower", "Daily Upper"]).unpivot(
+        index="Date",
+        on=["Daily Lower", "Daily Upper"],
+        variable_name="Bound",
+        value_name="Bound Value",
+    ).to_pandas()
+
+    flow_main = alt.layer(
+        alt.Chart(flow_bounds_long).mark_line(strokeDash=[6, 4]).encode(
+            x=alt.X("Date:T").scale(domain=brush_policy),
+            y=alt.Y("Bound Value:Q", title="Net Flow"),
+            color=alt.Color("Bound:N", title="Daily Bounds"),
+        ),
+        alt.Chart(policy_pd).mark_line(color="#1f77b4").encode(
+            x=alt.X("Date:T").scale(domain=brush_policy),
+            y=alt.Y("Net Flow:Q", title="Net Flow"),
+            tooltip=["Date:T", alt.Tooltip("Net Flow:Q", format=",.2f")],
+        ),
+        alt.Chart(policy_pd[policy_pd["Daily Penalty"]]).mark_point(color="#d62728", size=90, filled=True).encode(
+            x=alt.X("Date:T").scale(domain=brush_policy),
+            y="Net Flow:Q",
+        ),
+    ).properties(width="container", height=300, title="Policy: Daily Net Flow and Penalty Marks")
+
+    month_end_pd = policy_df.filter(pl.col("Is Month End")).to_pandas()
+    month_end_bounds = policy_df.filter(pl.col("Is Month End")).select(["Date", "Month End Lower", "Month End Upper"]).unpivot(
+        index="Date",
+        on=["Month End Lower", "Month End Upper"],
+        variable_name="Bound",
+        value_name="Bound Value",
+    ).to_pandas()
+
+    inventory_main = alt.layer(
+        alt.Chart(month_end_bounds).mark_line(strokeDash=[6, 4]).encode(
+            x=alt.X("Date:T").scale(domain=brush_policy),
+            y=alt.Y("Bound Value:Q", title="Inventory"),
+            color=alt.Color("Bound:N", title="Month-End Bounds"),
+        ),
+        alt.Chart(month_end_pd).mark_line(color="#2ca02c").encode(
+            x=alt.X("Date:T").scale(domain=brush_policy),
+            y=alt.Y("Inventory After:Q", title="Inventory"),
+            tooltip=["Date:T", alt.Tooltip("Inventory After:Q", format=",.2f")],
+        ),
+        alt.Chart(month_end_pd[month_end_pd["Month End Penalty"]]).mark_point(color="#d62728", size=110, filled=True).encode(
+            x=alt.X("Date:T").scale(domain=brush_policy),
+            y="Inventory After:Q",
+        ),
+    ).properties(width="container", height=300, title="Policy: Month-End Inventory and Penalty Marks")
+
+    overview = (
+        alt.Chart(policy_pd)
+        .mark_line(color="#9ecae1")
+        .encode(
+            x=alt.X("Date:T", title="Date Window"),
+            y=alt.Y("Recommended Delivery:Q", title="Recommended Delivery"),
+        )
+        .properties(width="container", height=90)
+        .add_params(brush_policy)
+    )
+
+    chart = flow_main if mode.value == "Daily Net Flow" else inventory_main
+
+    mo.vstack([mode, mo.ui.altair_chart(chart & overview)], gap=0.8)
     return
 
 
