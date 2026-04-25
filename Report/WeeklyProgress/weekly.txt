@@ -1,0 +1,32 @@
+Use this as a paste-ready timeline context:
+
+**7-Week Project Timeline Context**
+We worked on a gas usage forecasting and delivery optimization project for Scot Forge. The project evolved from initial data understanding into model benchmarking, then into probabilistic forecasting, and finally into a rolling optimization system that respects daily injection/withdrawal limits, monthly storage bounds, and tiered cash-out penalties.
+
+1. **Week 1**
+   We held the initial project discussion, defined the problem as predicting gas usage from historical data, and identified the need to potentially add climate/weather features. We also noted that penalties apply for both under-usage and over-usage, so accurate prediction was critical. Action items included understanding the dataset, preprocessing the Excel file, and doing initial EDA.
+
+2. **Week 2**
+   We completed EDA and started building baseline models. The analysis showed seasonal and weekly patterns, temperature influence on gas consumption, scale differences between facilities, and anomalies in some historical periods. We also identified that Usage-2 represents the largest facility and planned to analyze delivery vs. usage gaps later.
+
+3. **Week 3**
+   We performed lag correlation analysis, trend analysis, and baseline forecasting using MoM/YoY data and positive-correlation lags. We also built an ensemble baseline and compared it with SARIMAX. The team discussed different forecasting strategies, compared backtest performance using MAE/MSE/RMSE, and started fine-tuning the baseline models.
+
+4. **Week 4**
+   We trained multiple ML and time-series models using different variations and training techniques. For total usage, we tested XGBoost, LightGBM, LightGBM with regime-based training, CatBoost, CatBoost with regime + residual + hyperparameter tuning, and an ensemble of XGBoost/LGBM/CatBoost. For Usage-1 and Usage-2, we tested TimesNet and PatchTST, including a calibrated TimesNet version. We used a 1-day walk-forward evaluation approach to simulate real production forecasting.
+
+5. **Week 5**
+   We presented the forecasting models and their metrics to the client and discussed model selection criteria and walk-forward validation. We also reviewed tariff documentation, including storage and transportation provisions, daily injection/withdrawal limits, end-of-month storage requirements, and the tiered cash-out penalty structure. The focus shifted from pure forecasting to incorporating operational constraints into the modeling process.
+
+6. **Week 6**
+   We moved to probabilistic forecasting with P10, P50, and P95 scenarios to capture uncertainty. We introduced penalty flags as an operational evaluation metric and applied a rolling optimization framework on 2022–2024 data to derive optimal delivery decisions. Initial results showed reduced daily penalties, monthly penalties staying about the same, and roughly 50% fewer Tier 3 cash-out charges versus actual operations.
+
+7. **Week 7**
+   We refined the optimized strategy and saw stronger daily penalty reduction while monthly penalties remained roughly unchanged. We also added pricing values to estimate dollar savings and began focusing more on monthly constraint handling and financial impact. The project at this stage became a forecast-plus-optimization pipeline aimed at reducing penalties and improving delivery decisions under contract rules.
+
+**One-line summary**
+The project progressed from EDA and baseline forecasting to advanced forecasting models, then to probabilistic prediction and finally to a rolling optimization system that uses forecast outputs to reduce gas delivery penalties under storage and tariff constraints.
+
+If you want, I can also turn this into:
+1. a shorter 5-line version for a report prompt, or
+2. a formal paragraph version you can paste directly into ChatGPT or another model.

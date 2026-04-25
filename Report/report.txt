@@ -1,0 +1,56 @@
+
+# Gas Usage Forecasting and Delivery Optimization for Scot Forge
+
+## Abstract
+
+This project studies gas usage forecasting and delivery optimization for Scot Forge under daily injection and withdrawal limits, monthly end-of-storage bounds, and tiered cash-out penalties. The work began with exploratory analysis and baseline forecasting, then progressed through a broad model comparison that included XGBoost, LightGBM, CatBoost, SARIMAX, TimesNet, PatchTST, and ensemble variants. The final system uses a blended quantile forecasting model trained monthly on lagged usage, calendar variables, holiday indicators, and storage history to produce p10, p50, and p95 demand estimates. These forecasts are then passed to a rolling linear programming optimizer that chooses delivery values over a 60-day horizon while respecting operational limits and seasonal buffers. Backtesting over 2022 to 2024 shows that the optimized plan reduces daily penalties substantially, keeps monthly violations broadly stable, and lowers exposure to the most expensive cash-out tiers. The overall result is a forecasting and decision-support pipeline that is more operationally useful than forecasting alone.
+
+## Introduction
+
+Natural gas storage operations require balancing two competing goals: meeting customer demand and remaining within contract constraints on injection, withdrawal, and end-of-month inventory levels. If delivery is too aggressive, the system can violate injection limits; if it is too conservative, it can violate withdrawal limits or leave storage outside the allowed monthly band. For this reason, the project was designed as a full forecasting-and-optimization pipeline rather than a standalone prediction exercise.
+
+The team first explored the data structure and the operational problem, then studied how usage behaves across seasons, weekdays, holidays, and facility types. Early analysis showed that temperature and calendar effects are meaningful, that different usage series behave differently, and that the Delivery versus Usage gap cannot be ignored. These findings motivated a modeling strategy that would not only predict usage accurately, but also turn that prediction into a feasible delivery decision.
+
+## Problem Statement
+
+The problem is to predict daily gas usage and choose delivery values that minimize penalties while satisfying daily injection limits, daily withdrawal limits, and monthly end-of-period storage requirements. The system also needs to operate in a 2-day-ahead setting, retrain monthly, and remain stable under seasonal changes.
+
+Three hypotheses guided the project. First, a blended quantile model would forecast usage more robustly than a single learner because it combines flexibility and stability. Second, a rolling-horizon linear program would outperform a direct delivery rule because it can anticipate future storage needs rather than only reacting to the current day. Third, adaptive monthly buffers would reduce violations during difficult periods by tightening the effective constraints in months with higher operational risk.
+
+## Proposed Methodology
+
+The project moved through three stages. The first stage was exploratory analysis and baseline forecasting. In that phase, the team examined historical usage, lags, seasonal patterns, and anomalies, then benchmarked several model families. For total usage, the team compared XGBoost, LightGBM, LightGBM with regime-based training, CatBoost, CatBoost with regime plus residual plus hyperparameter tuning, and a simple ensemble of tree-based models. For the facility-level series, TimesNet and PatchTST were tested, including a calibrated TimesNet version. A walk-forward evaluation protocol was used so that each day’s forecast was made using only information available up to that point, which better matches a real production environment.
+
+The final forecasting model in the implementation uses a monthly retrained blended quantile approach. The input features include day of week, month, day of month, day of year, quarter, weekend flags, holiday indicators, days to end of month, lagged usage values, rolling means and standard deviations, and storage percentage history. The model predicts p10, p50, and p95 usage levels. Each quantile is estimated using both GradientBoostingRegressor and QuantileRegressor, and the two outputs are blended. This design keeps the forecast conservative enough for planning while reducing dependence on a single modeling family.
+
+The second stage is optimization. The forecasted usage values are fed into a rolling linear program solved with scipy.optimize.linprog over a 60-day horizon. The optimizer minimizes a penalty-aware objective and enforces daily injection and withdrawal constraints, monthly storage bands, and a mid-month storage target. The implementation also uses adaptive monthly buffers because the contract behaves differently across the year. For example, summer injection buffers are tighter in months when injection violations are more likely, while withdrawal buffers are tighter in months where withdrawal risk is higher. The optimizer also applies multiple end-of-month constraints inside the horizon, not just the current month, which makes the plan more realistic. If the program becomes infeasible, it falls back to simpler constraint sets so that a usable delivery schedule is still produced.
+
+The final stage is evaluation. The resulting schedule is compared against the actual delivery history using daily violation flags, monthly violation flags, storage trajectories, and tiered cash-out penalties. This is the point where forecasting quality and decision quality are evaluated together.
+
+## Analysis and Results
+
+The analysis shows two important patterns. First, the data clearly contains seasonal structure. Usage changes by month, lag relationships matter, and holiday effects are visible. Second, prediction accuracy alone is not enough. Even a good forecast can produce poor decisions if the delivery plan does not respect the operational contract.
+
+The benchmark models built during the project confirmed that simpler, direct predictive accuracy was only one part of the problem. Tree-based models and time-series models were useful for comparison, but the final forecasting and optimization pipeline was selected because it aligned more directly with the operational objective. The blended quantile forecast was especially useful because it gave a conservative range of likely usage rather than just a single point estimate.
+
+The final optimization results show that the optimized delivery schedule reduces daily penalties substantially relative to the actual schedule while leaving monthly penalties broadly unchanged. This is consistent with the weekly progress updates, which showed daily penalty reductions improving from roughly 150 to roughly 264, with monthly penalties staying near 15. In practical terms, the optimizer makes the schedule safer day to day without destabilizing the month-end storage position.
+
+The tiered cash-out analysis also shows meaningful savings. In the dashboard comparison, the optimized plan reduces penalties across all tiers, with the largest reduction in Tier 3, which is the most expensive category. The final output file records actual and optimized delivery, storage after delivery, usage quantiles, and violation flags for every day in the 2022 to 2024 backtest window, allowing direct comparison of policy quality under operational constraints.
+
+Overall, the results support the main claim of the project: the best decision is not simply the most accurate forecast, but the forecast that can be converted into a feasible and penalty-aware delivery plan.
+
+## Conclusions
+
+This project demonstrates that gas delivery planning works best when forecasting and optimization are treated as a single system. The forecasting model provides risk-aware usage estimates, and the linear program transforms those estimates into a delivery plan that respects storage and flow constraints. The final approach is more operationally useful than a forecast-only solution because it directly addresses the penalty structure of the problem.
+
+The work also shows that disciplined model design matters more than model complexity alone. Monthly retraining, lagged features, adaptive buffers, and a rolling horizon captured the major operational structure without making the system unnecessarily complicated. Most importantly, the project confirmed that decision quality depends on how well the forecast reflects seasonality and how carefully the optimization constraints are written.
+
+## Lessons that you have learned
+
+The main lesson from this project is that good analytics must be judged by the decision it supports, not only by prediction error. A model can score well on RMSE or MAE and still be operationally weak if it cannot produce a feasible delivery plan. I also learned that uncertainty should be modeled explicitly. The quantile forecasts were valuable because the optimizer needed a cautious usage estimate, not just a central estimate.
+
+Another lesson was the importance of seasonality and business rules. Different months behaved differently, so adaptive buffers and month-specific constraints were necessary. I also learned that walk-forward validation is much more realistic than random train-test splits for a production forecasting problem.
+
+For future class projects, it would help to provide a short example of how to move from prediction to decision making, because many real consulting problems require both pieces together rather than one model in isolation. The project as a whole reinforced that analytics becomes most useful when it is tied tightly to the operational constraints of the client problem.
+
+If you want, I can now convert this into a shorter version that fits a strict 5-page layout more tightly, or I can format it as a cleaner submission draft with title page style spacing and section numbering.
