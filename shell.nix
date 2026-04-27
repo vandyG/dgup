@@ -14,5 +14,6 @@ pkgs.mkShell {
     pkgs.python311
     pkgs.python310
     pkgs.nodejs_24
+    pkgs.texliveFull
   ];
 }
