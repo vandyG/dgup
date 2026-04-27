@@ -293,8 +293,35 @@
   /* ── HIGHLIGHT LINE ───────────────────────────── */
   .hl { height: 2px; border-radius: 1px; margin-bottom: 20px; }
 
-  /* ── FLOW DIAGRAM ─────────────────────────────── */
+  /* ── FLOW DIAGRAM ─────  ────────────────────────── */
   .flow-diag { margin-top: 16px; }
+
+  @media print {
+    @page {
+      size: 16in 9in;
+      margin: 0;
+    }
+
+    html,
+    body {
+      width: 16in;
+      height: 9in;
+      margin: 0;
+      padding: 0;
+      print-color-adjust: exact;
+      -webkit-print-color-adjust: exact;
+    }
+
+    body {
+      min-height: 0;
+    }
+
+    .poster {
+      width: 16in;
+      height: 9in;
+      min-height: 0;
+    }
+  }
 </style>
 </head>
 <body>
@@ -865,27 +892,3 @@
 </div>
 </body>
 </html>
-
-@media print {
-  @page {
-    size: 16in 9in;
-    margin: 0;
-  }
-
-  html, body {
-    width: 16in;
-    height: 9in;
-    margin: 0;
-    padding: 0;
-  }
-
-  body {
-    min-height: 0;
-  }
-
-  .poster {
-    width: 16in;
-    height: 9in;
-    min-height: 0;
-  }
-}
