@@ -865,3 +865,27 @@
 </div>
 </body>
 </html>
+
+@media print {
+  @page {
+    size: 16in 9in;
+    margin: 0;
+  }
+
+  html, body {
+    width: 16in;
+    height: 9in;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    min-height: 0;
+  }
+
+  .poster {
+    width: 16in;
+    height: 9in;
+    min-height: 0;
+  }
+}
