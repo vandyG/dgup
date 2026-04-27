@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gas Storage Optimization — Project Poster</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+  :root {
+    --bg:      #09090f;
+    --bg2:     #111119;
+    --bg3:     #16161f;
+    --border:  rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.13);
+    --text:    #e8e6f0;
+    --muted:   #7a7890;
+    --dim:     #3d3c4f;
+    --blue:    #4a9eff;
+    --green:   #3de8a0;
+    --amber:   #f5a623;
+    --red:     #ff5e5e;
+    --purple:  #b48fff;
+    --teal:    #2dd4bf;
+    --glow-b:  rgba(74,158,255,0.12);
+    --glow-g:  rgba(61,232,160,0.10);
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    line-height: 1.5;
+    /* 4K output: 3840×2160 at 2x = 1920×1080 logical */
+    width: 1920px;
+    min-height: 1080px;
+  }
+
+  /* ── GRID ─────────────────────────────────────── */
+  .poster {
+    display: grid;
+    grid-template-columns: 375px 1fr 1fr 320px;
+    grid-template-rows: auto 1fr 1fr auto;
+    gap: 1px;
+    background: var(--border);
+    min-height: 1080px;
+  }
+
+  .cell {
+    background: var(--bg);
+    padding: 28px 30px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* ── HEADER ───────────────────────────────────── */
+  .header {
+    grid-column: 1 / -1;
+    background: var(--bg);
+    padding: 36px 48px 32px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border2);
+    position: relative;
+    overflow: hidden;
+  }
+  .header::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, var(--blue), var(--green), var(--purple), var(--blue));
+    background-size: 200% 100%;
+    animation: slide 8s linear infinite;
+  }
+  @keyframes slide { to { background-position: 200% 0; } }
+
+  .header-left { display: flex; flex-direction: column; gap: 8px; }
+  .project-tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+  .title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 86px;
+    letter-spacing: 0.04em;
+    line-height: 0.9;
+    color: var(--text);
+  }
+  .title span { color: var(--green); }
+  .subtitle {
+    font-size: 15px;
+    color: var(--muted);
+    font-weight: 300;
+    max-width: 520px;
+    margin-top: 6px;
+  }
+  .header-right {
+    display: flex;
+    gap: 40px;
+    align-items: flex-end;
+    padding-bottom: 4px;
+  }
+  .header-meta { text-align: right; }
+  .header-meta .label { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 4px; }
+  .header-meta .value { font-family: 'DM Mono', monospace; font-size: 22px; color: var(--text); font-weight: 500; }
+
+  /* ── SECTION LABELS ───────────────────────────── */
+  .section-tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-tag::before {
+    content: '';
+    display: inline-block;
+    width: 16px;
+    height: 1px;
+    background: var(--muted);
+  }
+
+  /* ── HERO STAT ────────────────────────────────── */
+  .hero-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 20px;
+  }
+  .hero-stat .num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 72px;
+    line-height: 1;
+    letter-spacing: 0.03em;
+  }
+  .hero-stat .unit { font-size: 14px; color: var(--muted); font-weight: 300; margin-top: 2px; }
+
+  /* ── STAT GRID ────────────────────────────────── */
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
+  .stat-box {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+  }
+  .stat-box .s-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 6px; }
+  .stat-box .s-val { font-family: 'DM Mono', monospace; font-size: 22px; font-weight: 500; }
+  .stat-box .s-sub { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+  /* ── PIPELINE ─────────────────────────────────── */
+  .pipeline { display: flex; flex-direction: column; gap: 0; }
+  .pipe-step {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+  }
+  .pipe-step:last-child { border-bottom: none; }
+  .pipe-num {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    padding-top: 2px;
+    min-width: 18px;
+  }
+  .pipe-content { flex: 1; }
+  .pipe-title { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+  .pipe-desc { font-size: 11px; color: var(--muted); line-height: 1.4; }
+  .pipe-badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    padding: 2px 7px;
+    border-radius: 3px;
+    border: 1px solid;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+    align-self: center;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+  .badge-blue  { color: var(--blue);   border-color: rgba(74,158,255,0.3); background: rgba(74,158,255,0.06); }
+  .badge-green { color: var(--green);  border-color: rgba(61,232,160,0.3); background: rgba(61,232,160,0.06); }
+  .badge-amber { color: var(--amber);  border-color: rgba(245,166,35,0.3); background: rgba(245,166,35,0.06); }
+  .badge-purple{ color: var(--purple); border-color: rgba(180,143,255,0.3); background: rgba(180,143,255,0.06); }
+
+  /* ── CHART CELL ───────────────────────────────── */
+  .chart-area { margin-top: 8px; position: relative; }
+
+  /* ── TIER TABLE ───────────────────────────────── */
+  .tier-table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+  .tier-table th {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-align: left;
+    padding: 6px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .tier-table td { padding: 10px 12px; font-size: 12px; border-bottom: 1px solid var(--border); }
+  .tier-table tr:last-child td { border-bottom: none; }
+  .tier-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 8px; }
+
+  /* ── COMPARISON BARS ──────────────────────────── */
+  .cmp-row { margin-bottom: 16px; }
+  .cmp-label { font-size: 11px; color: var(--muted); margin-bottom: 6px; display: flex; justify-content: space-between; }
+  .cmp-bars { display: flex; flex-direction: column; gap: 4px; }
+  .bar-wrap { display: flex; align-items: center; gap: 8px; }
+  .bar-track { flex: 1; height: 10px; background: var(--bg3); border-radius: 2px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 2px; }
+  .bar-tag { font-family: 'DM Mono', monospace; font-size: 10px; width: 70px; text-align: left; flex-shrink: 0; }
+
+  /* ── METHODOLOGY ──────────────────────────────── */
+  .method-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+  .method-box {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+  }
+  .method-box .m-icon {
+    font-family: 'DM Mono', monospace;
+    font-size: 20px;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+  .method-box .m-title { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+  .method-box .m-body { font-size: 11px; color: var(--muted); line-height: 1.45; }
+
+  /* ── FOOTER ───────────────────────────────────── */
+  .footer {
+    grid-column: 1 / -1;
+    background: var(--bg);
+    padding: 18px 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-top: 1px solid var(--border);
+  }
+  .footer-left { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--dim); }
+  .footer-pills { display: flex; gap: 8px; }
+  .pill {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    letter-spacing: 0.06em;
+  }
+
+  /* ── DECORATIVE GRID BG ──────────────────────── */
+  .bg-grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  /* ── GLOW ACCENTS ─────────────────────────────── */
+  .glow-accent {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(60px);
+    pointer-events: none;
+  }
+
+  /* ── COLORED NUMBERS ──────────────────────────── */
+  .c-blue   { color: var(--blue); }
+  .c-green  { color: var(--green); }
+  .c-amber  { color: var(--amber); }
+  .c-purple { color: var(--purple); }
+  .c-red    { color: var(--red); }
+  .c-teal   { color: var(--teal); }
+
+  /* ── HIGHLIGHT LINE ───────────────────────────── */
+  .hl { height: 2px; border-radius: 1px; margin-bottom: 20px; }
+
+  /* ── FLOW DIAGRAM ─────────────────────────────── */
+  .flow-diag { margin-top: 16px; }
+</style>
+</head>
+<body>
+<div class="poster">
+
+  <!-- ══════════════════════════════════════════ HEADER -->
+  <header class="header">
+    <div class="header-left">
+      <div class="title">NATURAL GAS Delivery<br><span>OPTIMIZATION</span></div>
+      <div class="project-tag">  Kumar Mantha · Pratyaksh MAthur · Vandit Goel </div>
+      <div class="subtitle">ML forecasting + stochastic linear programming to minimize cash-out penalties across daily injection/withdrawal and end-of-month storage constraints.</div>
+    </div>
+    <div class="header-right">
+      <div class="header-meta">
+        <div class="label">Dataset</div>
+        <div class="value">3,410 days</div>
+      </div>
+      <div class="header-meta">
+        <div class="label">Period</div>
+        <div class="value">Aug 2015 – Nov 2024</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ══════════════════════════════════════════ COL 1 ROW 1: KEY RESULTS -->
+  <div class="cell" style="grid-column:1; grid-row:2;">
+    <div class="bg-grid"></div>
+    <div class="glow-accent" style="width:200px;height:200px;background:var(--glow-g);top:-60px;right:-60px;"></div>
+    <div class="section-tag">Key Results</div>
+    <div class="hl" style="background: linear-gradient(90deg, var(--green), transparent);"></div>
+
+    <div class="hero-stat">
+      <div class="num c-green">42.3<span style="font-size:36px">%</span></div>
+      <div class="unit">Penalty Cost Reduction</div>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-box">
+        <div class="s-label">Actual Penalty</div>
+        <div class="s-val c-red">$532,491</div>
+        <div class="s-sub">420 violation days</div>
+      </div>
+      <div class="stat-box">
+        <div class="s-label">Optimised Penalty</div>
+        <div class="s-val c-green">$306,978</div>
+        <div class="s-sub">156 violation days</div>
+      </div>
+      <div class="stat-box">
+        <div class="s-label">Penalty Saved</div>
+        <div class="s-val c-amber">$225,513</div>
+        <div class="s-sub">across 3 years</div>
+      </div>
+      <div class="stat-box">
+        <div class="s-label">Violation Reduction</div>
+        <div class="s-val c-blue">62.9%</div>
+        <div class="s-sub">264 fewer days</div>
+      </div>
+      <div class="stat-box">
+        <div class="s-label">Total Cost Actual</div>
+        <div class="s-val" style="font-size:18px;">$11,863,466</div>
+        <div class="s-sub">base + penalty</div>
+      </div>
+      <div class="stat-box">
+        <div class="s-label">Total Cost Opt</div>
+        <div class="s-val" style="font-size:18px;">$11,396,756</div>
+        <div class="s-sub">$46,671 saved (3.9%)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════ COL 2 ROW 1: COST CHART -->
+  <div class="cell" style="grid-column:2 / 4; grid-row:2;">
+    <div class="section-tag">Monthly Cost — Actual vs Optimised</div>
+    <div class="hl" style="background: linear-gradient(90deg, var(--blue), var(--green), transparent);"></div>
+    <div class="chart-area">
+      <svg width="100%" viewBox="0 0 700 260" preserveAspectRatio="xMidYMid meet">
+        <!-- Y-axis grid lines -->
+        <line x1="58" y1="60" x2="648" y2="60"  stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+        <line x1="58" y1="95" x2="648" y2="95"  stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+        <line x1="58" y1="130" x2="648" y2="130" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+        <line x1="58" y1="165" x2="648" y2="165" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+        <line x1="58" y1="200" x2="648" y2="200" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+        <!-- Y labels -->
+        <text x="52" y="64"  fill="#3d3c4f" font-size="9" text-anchor="end" font-family="DM Mono, monospace">$90k</text>
+        <text x="52" y="99"  fill="#3d3c4f" font-size="9" text-anchor="end" font-family="DM Mono, monospace">$68k</text>
+        <text x="52" y="134" fill="#3d3c4f" font-size="9" text-anchor="end" font-family="DM Mono, monospace">$45k</text>
+        <text x="52" y="169" fill="#3d3c4f" font-size="9" text-anchor="end" font-family="DM Mono, monospace">$23k</text>
+        <text x="52" y="204" fill="#3d3c4f" font-size="9" text-anchor="end" font-family="DM Mono, monospace">$0</text>
+        <!-- Year separators -->
+        <line x1="228" y1="55" x2="228" y2="210" stroke="rgba(255,255,255,0.06)" stroke-width="1" stroke-dasharray="3 3"/>
+        <line x1="431" y1="55" x2="431" y2="210" stroke="rgba(255,255,255,0.06)" stroke-width="1" stroke-dasharray="3 3"/>
+        <text x="140" y="51" fill="#3d3c4f" font-size="9" text-anchor="middle" font-family="DM Mono, monospace">2022</text>
+        <text x="330" y="51" fill="#3d3c4f" font-size="9" text-anchor="middle" font-family="DM Mono, monospace">2023</text>
+        <text x="537" y="51" fill="#3d3c4f" font-size="9" text-anchor="middle" font-family="DM Mono, monospace">2024</text>
+
+        <!-- Opt area fill -->
+        <defs>
+          <linearGradient id="ga" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#4a9eff" stop-opacity="0.18"/>
+            <stop offset="100%" stop-color="#4a9eff" stop-opacity="0"/>
+          </linearGradient>
+          <linearGradient id="gb" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#3de8a0" stop-opacity="0.14"/>
+            <stop offset="100%" stop-color="#3de8a0" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+
+        <!-- Actual area -->
+        <polygon fill="url(#ga)" points="60.0,160.7 76.5,166.5 92.9,156.4 109.4,170.7 125.9,92.8 142.4,79.5 158.8,85.2 175.3,82.4 191.8,74.9 208.2,60.0 224.7,68.2 241.2,148.5 257.6,145.2 274.1,164.3 290.6,186.3 307.1,186.4 323.5,163.7 340.0,160.8 356.5,160.5 372.9,150.2 389.4,148.7 405.9,144.9 422.4,175.8 438.8,186.1 455.3,185.3 471.8,188.6 488.2,172.4 504.7,170.7 521.2,163.6 537.6,166.7 554.1,159.1 570.6,159.6 587.1,161.2 603.5,164.7 620.0,177.7 620.0,200 60,200"/>
+
+        <!-- Opt area -->
+        <polygon fill="url(#gb)" points="60.0,162.7 76.5,167.9 92.9,147.6 109.4,136.8 125.9,99.1 142.4,100.1 158.8,91.9 175.3,96.9 191.8,101.8 208.2,63.6 224.7,93.5 241.2,146.6 257.6,160.9 274.1,165.7 290.6,165.5 307.1,157.8 323.5,162.3 340.0,168.2 356.5,164.8 372.9,165.5 389.4,162.4 405.9,149.6 422.4,166.0 438.8,176.3 455.3,179.0 471.8,176.6 488.2,170.4 504.7,166.6 521.2,169.3 537.6,171.7 554.1,165.7 570.6,170.2 587.1,173.9 603.5,166.7 620.0,175.9 620.0,200 60,200"/>
+
+        <!-- Actual line -->
+        <polyline fill="none" stroke="#4a9eff" stroke-width="1.5" stroke-linejoin="round"
+          points="60.0,160.7 76.5,166.5 92.9,156.4 109.4,170.7 125.9,92.8 142.4,79.5 158.8,85.2 175.3,82.4 191.8,74.9 208.2,60.0 224.7,68.2 241.2,148.5 257.6,145.2 274.1,164.3 290.6,186.3 307.1,186.4 323.5,163.7 340.0,160.8 356.5,160.5 372.9,150.2 389.4,148.7 405.9,144.9 422.4,175.8 438.8,186.1 455.3,185.3 471.8,188.6 488.2,172.4 504.7,170.7 521.2,163.6 537.6,166.7 554.1,159.1 570.6,159.6 587.1,161.2 603.5,164.7 620.0,177.7"/>
+
+        <!-- Opt line -->
+        <polyline fill="none" stroke="#3de8a0" stroke-width="1.5" stroke-linejoin="round"
+          points="60.0,162.7 76.5,167.9 92.9,147.6 109.4,136.8 125.9,99.1 142.4,100.1 158.8,91.9 175.3,96.9 191.8,101.8 208.2,63.6 224.7,93.5 241.2,146.6 257.6,160.9 274.1,165.7 290.6,165.5 307.1,157.8 323.5,162.3 340.0,168.2 356.5,164.8 372.9,165.5 389.4,162.4 405.9,149.6 422.4,166.0 438.8,176.3 455.3,179.0 471.8,176.6 488.2,170.4 504.7,166.6 521.2,169.3 537.6,171.7 554.1,165.7 570.6,170.2 587.1,173.9 603.5,166.7 620.0,175.9"/>
+
+        <!-- Legend -->
+        <rect x="460" y="222" width="10" height="2" rx="1" fill="#4a9eff"/>
+        <text x="475" y="227" fill="#7a7890" font-size="10" font-family="DM Mono, monospace">Actual</text>
+        <rect x="530" y="222" width="10" height="2" rx="1" fill="#3de8a0"/>
+        <text x="545" y="227" fill="#7a7890" font-size="10" font-family="DM Mono, monospace">Optimised</text>
+      </svg>
+    </div>
+
+    <!-- Year-by-year comparison bars -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:8px;">
+      <div>
+        <div style="font-size:10px;color:var(--muted);margin-bottom:6px;font-family:'DM Mono',monospace;">2022 — Violations</div>
+        <div class="bar-wrap">
+          <div class="bar-track"><div class="bar-fill" style="width:100%;background:rgba(74,158,255,0.5);"></div></div>
+          <span class="bar-tag c-blue" style="font-size:11px;">128</span>
+        </div>
+        <div class="bar-wrap" style="margin-top:4px;">
+          <div class="bar-track"><div class="bar-fill" style="width:44.5%;background:rgba(61,232,160,0.5);"></div></div>
+          <span class="bar-tag c-green" style="font-size:11px;">57</span>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:10px;color:var(--muted);margin-bottom:6px;font-family:'DM Mono',monospace;">2023 — Violations</div>
+        <div class="bar-wrap">
+          <div class="bar-track"><div class="bar-fill" style="width:100%;background:rgba(74,158,255,0.5);"></div></div>
+          <span class="bar-tag c-blue" style="font-size:11px;">156</span>
+        </div>
+        <div class="bar-wrap" style="margin-top:4px;">
+          <div class="bar-track"><div class="bar-fill" style="width:32.7%;background:rgba(61,232,160,0.5);"></div></div>
+          <span class="bar-tag c-green" style="font-size:11px;">51</span>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:10px;color:var(--muted);margin-bottom:6px;font-family:'DM Mono',monospace;">2024 — Violations</div>
+        <div class="bar-wrap">
+          <div class="bar-track"><div class="bar-fill" style="width:100%;background:rgba(74,158,255,0.5);"></div></div>
+          <span class="bar-tag c-blue" style="font-size:11px;">136</span>
+        </div>
+        <div class="bar-wrap" style="margin-top:4px;">
+          <div class="bar-track"><div class="bar-fill" style="width:35.3%;background:rgba(61,232,160,0.5);"></div></div>
+          <span class="bar-tag c-green" style="font-size:11px;">48</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════ COL 4 ROW 1: TIER BREAKDOWN -->
+  <div class="cell" style="grid-column:4; grid-row:2;">
+    <div class="bg-grid"></div>
+    <div class="section-tag">Cash-Out Tiers</div>
+    <div class="hl" style="background: linear-gradient(90deg, var(--amber), transparent);"></div>
+
+    <table class="tier-table">
+      <thead>
+        <tr>
+          <th>Tier</th>
+          <th>Variance</th>
+          <th>Penalty</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="tier-dot" style="background:var(--muted);"></span>T1</td>
+          <td style="color:var(--muted);">0–10%</td>
+          <td style="color:var(--muted);">0%</td>
+        </tr>
+        <tr>
+          <td><span class="tier-dot" style="background:var(--amber);"></span>T2</td>
+          <td>10–20%</td>
+          <td class="c-amber">15%</td>
+        </tr>
+        <tr>
+          <td><span class="tier-dot" style="background:var(--red);"></span>T3</td>
+          <td>>20%</td>
+          <td class="c-red">40%</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div style="margin-top:20px;">
+      <div style="font-size:10px;color:var(--muted);margin-bottom:10px;font-family:'DM Mono',monospace;letter-spacing:0.12em;text-transform:uppercase;">Tier Distribution — Actual</div>
+      <!-- T1: 71 days, T2: 47, T3: 302 -->
+      <div style="display:flex;height:28px;border-radius:4px;overflow:hidden;gap:2px;margin-bottom:8px;">
+        <div style="flex:71;background:rgba(122,120,144,0.3);display:flex;align-items:center;justify-content:center;">
+          <span style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">T1 71</span>
+        </div>
+        <div style="flex:47;background:rgba(245,166,35,0.4);"></div>
+        <div style="flex:302;background:rgba(255,94,94,0.5);display:flex;align-items:center;justify-content:center;">
+          <span style="font-size:10px;color:var(--red);font-family:'DM Mono',monospace;">T3 302</span>
+        </div>
+      </div>
+      <div style="font-size:10px;color:var(--muted);margin-bottom:10px;font-family:'DM Mono',monospace;letter-spacing:0.12em;text-transform:uppercase;">Tier Distribution — Optimised</div>
+      <div style="display:flex;height:28px;border-radius:4px;overflow:hidden;gap:2px;">
+        <div style="flex:22;background:rgba(61,232,160,0.15);display:flex;align-items:center;justify-content:center;">
+          <span style="font-size:10px;color:var(--green);font-family:'DM Mono',monospace;">T1 22</span>
+        </div>
+        <div style="flex:25;background:rgba(245,166,35,0.3);"></div>
+        <div style="flex:109;background:rgba(255,94,94,0.35);display:flex;align-items:center;justify-content:center;">
+          <span style="font-size:10px;color:var(--red);font-family:'DM Mono',monospace;">T3 109</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:20px;">
+      <div class="cmp-row">
+        <div class="cmp-label">
+          <span style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:0.1em;">Tier 3 Days</span>
+        </div>
+        <div class="bar-wrap">
+          <div class="bar-track" style="height:12px;"><div class="bar-fill" style="width:100%;background:rgba(255,94,94,0.45);"></div></div>
+          <span class="bar-tag c-red">302 act</span>
+        </div>
+        <div class="bar-wrap" style="margin-top:4px;">
+          <div class="bar-track" style="height:12px;"><div class="bar-fill" style="width:36.1%;background:rgba(61,232,160,0.4);"></div></div>
+          <span class="bar-tag c-green">109 opt</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════ COL 1 ROW 2: PENALTY FLOW -->
+  <div class="cell" style="grid-column:1; grid-row:3;">
+    <div class="bg-grid"></div>
+    <div class="glow-accent" style="width:150px;height:150px;background:var(--glow-b);bottom:-40px;left:-40px;"></div>
+    <div class="section-tag">Penalty Evaluation</div>
+    <div class="hl" style="background: linear-gradient(90deg, var(--purple), transparent);"></div>
+
+    <!-- Penalty SVG diagram -->
+    <svg width="100%" viewBox="0 0 260 280" style="overflow:visible;">
+      <!-- Storage tank schematic -->
+      <rect x="80" y="20" width="100" height="160" rx="8" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+
+      <!-- EOM band fill -->
+      <rect x="80" y="60" width="100" height="60" rx="0" fill="rgba(61,232,160,0.06)" stroke="none"/>
+      <line x1="80" y1="60" x2="180" y2="60" stroke="var(--green)" stroke-width="1" stroke-dasharray="4 3" opacity="0.5"/>
+      <line x1="80" y1="120" x2="180" y2="120" stroke="var(--red)" stroke-width="1" stroke-dasharray="4 3" opacity="0.5"/>
+
+      <text x="186" y="63" fill="#3de8a0" font-size="8" font-family="DM Mono,monospace">EOM max</text>
+      <text x="186" y="123" fill="#ff5e5e" font-size="8" font-family="DM Mono,monospace">EOM min</text>
+
+      <!-- Actual storage level -->
+      <rect x="82" y="42" width="96" height="1.5" rx="1" fill="var(--blue)" opacity="0.8"/>
+      <text x="130" y="38" fill="var(--blue)" font-size="8" text-anchor="middle" font-family="DM Mono,monospace">Actual level</text>
+
+      <!-- Injection arrow (violation) -->
+      <line x1="130" y1="20" x2="130" y2="5" stroke="var(--amber)" stroke-width="2" marker-end="url(#arw)"/>
+      <text x="148" y="14" fill="var(--amber)" font-size="8" font-family="DM Mono,monospace">Inject</text>
+
+      <!-- Withdrawal arrow -->
+      <line x1="130" y1="180" x2="130" y2="195" stroke="var(--blue)" stroke-width="2" marker-end="url(#arw)"/>
+      <text x="148" y="192" fill="var(--blue)" font-size="8" font-family="DM Mono,monospace">Withdraw</text>
+
+      <defs>
+        <marker id="arw" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5"/>
+        </marker>
+      </defs>
+
+      <!-- Daily penalty boxes -->
+      <rect x="10" y="215" width="108" height="28" rx="4" fill="rgba(255,94,94,0.08)" stroke="rgba(255,94,94,0.25)" stroke-width="0.5"/>
+      <text x="64" y="226" text-anchor="middle" fill="#ff5e5e" font-size="8" font-family="DM Mono,monospace">DAILY VIOLATION</text>
+      <text x="64" y="237" text-anchor="middle" fill="var(--muted)" font-size="8" font-family="DM Mono,monospace">excess / capacity &gt; tier</text>
+
+      <rect x="132" y="215" width="118" height="28" rx="4" fill="rgba(245,166,35,0.08)" stroke="rgba(245,166,35,0.25)" stroke-width="0.5"/>
+      <text x="191" y="226" text-anchor="middle" fill="var(--amber)" font-size="8" font-family="DM Mono,monospace">MONTHLY VIOLATION</text>
+      <text x="191" y="237" text-anchor="middle" fill="var(--muted)" font-size="8" font-family="DM Mono,monospace">EOM outside [min, max]</text>
+
+      <!-- Lines to tank -->
+      <line x1="64" y1="215" x2="100" y2="178" stroke="rgba(255,94,94,0.3)" stroke-width="0.5" stroke-dasharray="3 2"/>
+      <line x1="191" y1="215" x2="160" y2="180" stroke="rgba(245,166,35,0.3)" stroke-width="0.5" stroke-dasharray="3 2"/>
+
+      <!-- Cost formula -->
+      <rect x="10" y="252" width="240" height="24" rx="4" fill="rgba(180,143,255,0.06)" stroke="rgba(180,143,255,0.2)" stroke-width="0.5"/>
+      <text x="130" y="268" text-anchor="middle" fill="var(--purple)" font-size="9" font-family="DM Mono,monospace">cost = excess × GC_rate × tier_factor</text>
+    </svg>
+  </div>
+
+  <!-- ══════════════════════════════════════════ COL 2-3 ROW 2: METHODOLOGY -->
+  <div class="cell" style="grid-column:2 / 4; grid-row:3;">
+    <div class="section-tag">Methodology</div>
+    <div class="hl" style="background: linear-gradient(90deg, var(--purple), var(--teal), transparent);"></div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;height:calc(100% - 40px);">
+
+      <!-- Left: Pipeline -->
+      <div>
+        <div style="font-size:10px;color:var(--muted);margin-bottom:12px;font-family:'DM Mono',monospace;letter-spacing:0.12em;text-transform:uppercase;">Pipeline</div>
+        <div class="pipeline">
+          <div class="pipe-step">
+            <div class="pipe-num">01</div>
+            <div class="pipe-content">
+              <div class="pipe-title">2-Day-Ahead Blended Forecasting</div>
+              <div class="pipe-desc">Blended quantile model (70% GBM + 30% QuantileRegressor) for P10/P50/P95. Features: lags T−3 to T−30, rolling stats, holiday flags, storage %, days-to-EOM. Minimum lag = 2 enforces no leakage.</div>
+            </div>
+            <div class="pipe-badge badge-blue">GBM+QR</div>
+          </div>
+          <div class="pipe-step">
+            <div class="pipe-num">02</div>
+            <div class="pipe-content">
+              <div class="pipe-title">Quantile Uncertainty Bands</div>
+              <div class="pipe-desc">Three quantile levels (P10, P50, P95) trained simultaneously. P95 forecast used as conservative usage estimate for LP. Monthly expanding-window retrain across 36 model snapshots (Jan 2022 – Dec 2024).</div>
+            </div>
+            <div class="pipe-badge badge-purple">P10/P95</div>
+          </div>
+          <div class="pipe-step">
+            <div class="pipe-num">03</div>
+            <div class="pipe-content">
+              <div class="pipe-title">Adaptive Contract Limit Buffering</div>
+              <div class="pipe-desc">Month-specific injection buffers (78–85%) and withdrawal buffers (80–88%) shrink effective LP limits. Tighter in summer (inj) and April (wd) where violations historically concentrate.</div>
+            </div>
+            <div class="pipe-badge badge-amber">Adaptive</div>
+          </div>
+          <div class="pipe-step">
+            <div class="pipe-num">04</div>
+            <div class="pipe-content">
+              <div class="pipe-title">Cost-Weighted Deterministic LP</div>
+              <div class="pipe-desc">Minimises Σ c[t]·delivery[t] where c[t] = 1 − α·(inj_norm + wd_norm), α=0.10. Hard flow/storage bounds, soft multi-EOM and mid-month steering constraints. HiGHS solver, 3-level fallback.</div>
+            </div>
+            <div class="pipe-badge badge-green">HiGHS</div>
+          </div>
+          <div class="pipe-step">
+            <div class="pipe-num">05</div>
+            <div class="pipe-content">
+              <div class="pipe-title">Rolling MPC Loop (60-day horizon)</div>
+              <div class="pipe-desc">60-day lookahead, act on delivery[0] only. Overshoot guard floors delivery when storage exceeds EOM_max. Hard post-LP clip to raw contract limits. Re-plan every day with updated actuals.</div>
+            </div>
+            <div class="pipe-badge badge-blue">MPC</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: LP diagram — accurate to v4 code -->
+      <div>
+        <div style="font-size:10px;color:var(--muted);margin-bottom:14px;font-family:'DM Mono',monospace;letter-spacing:0.12em;text-transform:uppercase;">Rolling LP Structure (v4)</div>
+
+        <svg width="100%" viewBox="0 0 430 310" style="overflow:visible; display:block;">
+          <defs>
+            <marker id="arwW" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+              <path d="M1 1.5L8.5 5L1 8.5" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
+            </marker>
+            <marker id="arwB" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+              <path d="M1 1.5L8.5 5L1 8.5" fill="none" stroke="rgba(74,158,255,0.6)" stroke-width="1.5"/>
+            </marker>
+            <marker id="arwG" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+              <path d="M1 1.5L8.5 5L1 8.5" fill="none" stroke="rgba(61,232,160,0.6)" stroke-width="1.5"/>
+            </marker>
+            <marker id="arwA" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+              <path d="M1 1.5L8.5 5L1 8.5" fill="none" stroke="rgba(245,166,35,0.6)" stroke-width="1.5"/>
+            </marker>
+          </defs>
+
+          <!-- ══════════════════════════════════════════════ -->
+          <!-- ROW 1 — INPUT BOX (Forecast) -->
+          <!-- ══════════════════════════════════════════════ -->
+          <rect x="10" y="8" width="148" height="46" rx="6"
+            fill="rgba(74,158,255,0.07)" stroke="rgba(74,158,255,0.3)" stroke-width="0.7"/>
+          <text x="84" y="26" text-anchor="middle" fill="#4a9eff" font-size="9.5" font-weight="600" font-family="DM Sans,sans-serif">Forecast Input</text>
+          <text x="84" y="41" text-anchor="middle" fill="#7a7890" font-size="8.5" font-family="DM Mono,monospace">usage_p95[t]  horizon=60d</text>
+
+          <!-- Arrow: Forecast → LP Solver -->
+          <line x1="84" y1="54" x2="84" y2="80" stroke="rgba(74,158,255,0.4)" stroke-width="1" marker-end="url(#arwB)"/>
+
+          <!-- ══════════════════════════════════════════════ -->
+          <!-- ROW 2 — LP SOLVER BOX (central) -->
+          <!-- ══════════════════════════════════════════════ -->
+          <rect x="10" y="82" width="148" height="88" rx="6"
+            fill="rgba(61,232,160,0.06)" stroke="rgba(61,232,160,0.35)" stroke-width="0.8"/>
+          <text x="84" y="100" text-anchor="middle" fill="#3de8a0" font-size="9.5" font-weight="600" font-family="DM Sans,sans-serif">LP Solver  (HiGHS)</text>
+
+          <!-- objective inside box -->
+         
+          <text x="84" y="119" text-anchor="middle" fill="#b48fff" font-size="8.5" font-family="DM Mono,monospace">min Σ c[t] · delivery[t]</text>
+          <text x="84" y="130" text-anchor="middle" fill="#7a7890" font-size="7.5" font-family="DM Mono,monospace">c[t] = 1 − α·(inj_norm + wd_norm)</text>
+
+          <!-- decision var label -->
+          <text x="84" y="152" text-anchor="middle" fill="#7a7890" font-size="8" font-family="DM Mono,monospace">var:  delivery[t] ≥ 0,  t=1..H</text>
+          <text x="84" y="163" text-anchor="middle" fill="#7a7890" font-size="8" font-family="DM Mono,monospace">solver:  HiGHS  |  α = 0.10</text>
+
+          <!-- Arrow: LP → Output -->
+          <line x1="84" y1="170" x2="84" y2="196" stroke="rgba(61,232,160,0.5)" stroke-width="1" marker-end="url(#arwG)"/>
+
+          <!-- ══════════════════════════════════════════════ -->
+          <!-- ROW 3 — OUTPUT BOX -->
+          <!-- ══════════════════════════════════════════════ -->
+          <rect x="10" y="198" width="148" height="44" rx="6"
+            fill="rgba(245,166,35,0.07)" stroke="rgba(245,166,35,0.3)" stroke-width="0.7"/>
+          <text x="84" y="216" text-anchor="middle" fill="#f5a623" font-size="9.5" font-weight="600" font-family="DM Sans,sans-serif">Act on delivery[0] only</text>
+          <text x="84" y="231" text-anchor="middle" fill="#7a7890" font-size="8.5" font-family="DM Mono,monospace">re-plan daily  ·  MPC loop</text>
+
+          <!-- ══════════════════════════════════════════════ -->
+          <!-- RIGHT PANEL — CONSTRAINTS -->
+          <!-- ══════════════════════════════════════════════ -->
+
+          <!-- Hard constraints header -->
+          <text x="176" y="20" fill="#7a7890" font-size="8.5" font-family="DM Mono,monospace" letter-spacing="0.05em">HARD CONSTRAINTS</text>
+          <line x1="176" y1="24" x2="425" y2="24" stroke="rgba(255,255,255,0.08)" stroke-width="0.5"/>
+
+          <!-- Injection bound -->
+          <rect x="176" y="30" width="248" height="28" rx="4"
+            fill="rgba(74,158,255,0.05)" stroke="rgba(74,158,255,0.2)" stroke-width="0.5"/>
+          <text x="186" y="44" fill="#4a9eff" font-size="8.5" font-family="DM Mono,monospace">delivery[t] ≤ inj_lim[t]·β_inj + usage[t]</text>
+          <text x="186" y="54" fill="#7a7890" font-size="7.5" font-family="DM Mono,monospace">β_inj ∈ [0.78, 0.85]  by month</text>
+
+          <!-- Withdrawal bound -->
+          <rect x="176" y="64" width="248" height="28" rx="4"
+            fill="rgba(74,158,255,0.05)" stroke="rgba(74,158,255,0.2)" stroke-width="0.5"/>
+          <text x="186" y="78" fill="#4a9eff" font-size="8.5" font-family="DM Mono,monospace">delivery[t] ≥ usage[t] − wd_lim[t]·β_wd</text>
+          <text x="186" y="88" fill="#7a7890" font-size="7.5" font-family="DM Mono,monospace">β_wd ∈ [0.80, 0.88]  by month</text>
+
+          <!-- Storage band -->
+          <rect x="176" y="98" width="248" height="28" rx="4"
+            fill="rgba(74,158,255,0.05)" stroke="rgba(74,158,255,0.2)" stroke-width="0.5"/>
+          <text x="186" y="112" fill="#4a9eff" font-size="8.5" font-family="DM Mono,monospace">0 ≤ storage[t] ≤ Max Storage</text>
+          <text x="186" y="122" fill="#7a7890" font-size="7.5" font-family="DM Mono,monospace">storage[t] = s₀ + Σdelivery − Σusage</text>
+
+          <!-- Soft constraints header -->
+          <text x="176" y="144" fill="#7a7890" font-size="8.5" font-family="DM Mono,monospace" letter-spacing="0.05em">SOFT CONSTRAINTS</text>
+          <line x1="176" y1="148" x2="425" y2="148" stroke="rgba(255,255,255,0.08)" stroke-width="0.5"/>
+
+          <!-- EOM -->
+          <rect x="176" y="154" width="248" height="28" rx="4"
+            fill="rgba(61,232,160,0.05)" stroke="rgba(61,232,160,0.2)" stroke-width="0.5"/>
+          <text x="186" y="168" fill="#3de8a0" font-size="8.5" font-family="DM Mono,monospace">EOM_min ≤ storage[eom] ≤ EOM_max</text>
+          <text x="186" y="178" fill="#7a7890" font-size="7.5" font-family="DM Mono,monospace">one per month in horizon  ·  buf=6–10%</text>
+
+          <!-- Mid-month -->
+          <rect x="176" y="188" width="248" height="28" rx="4"
+            fill="rgba(61,232,160,0.05)" stroke="rgba(61,232,160,0.2)" stroke-width="0.5"/>
+          <text x="186" y="202" fill="#3de8a0" font-size="8.5" font-family="DM Mono,monospace">storage[day15] ≈ (EOM_min+EOM_max)/2</text>
+          <text x="186" y="212" fill="#7a7890" font-size="7.5" font-family="DM Mono,monospace">slack = ±6%·capacity  mid-month steer</text>
+
+          <!-- POST-LP header -->
+          <text x="176" y="234" fill="#7a7890" font-size="8.5" font-family="DM Mono,monospace" letter-spacing="0.05em">POST-LP ADJUSTMENTS</text>
+          <line x1="176" y1="238" x2="425" y2="238" stroke="rgba(255,255,255,0.08)" stroke-width="0.5"/>
+
+          <!-- Overshoot guard -->
+          <rect x="176" y="244" width="115" height="40" rx="4"
+            fill="rgba(245,166,35,0.05)" stroke="rgba(245,166,35,0.2)" stroke-width="0.5"/>
+          <text x="233" y="259" text-anchor="middle" fill="#f5a623" font-size="8" font-family="DM Mono,monospace">Overshoot Guard</text>
+          <text x="233" y="271" text-anchor="middle" fill="#7a7890" font-size="7.5" font-family="DM Mono,monospace">floor delivery if</text>
+          <text x="233" y="281" text-anchor="middle" fill="#7a7890" font-size="7.5" font-family="DM Mono,monospace">storage &gt; EOM_max</text>
+
+          <!-- Hard clip -->
+          <rect x="297" y="244" width="127" height="40" rx="4"
+            fill="rgba(245,166,35,0.05)" stroke="rgba(245,166,35,0.2)" stroke-width="0.5"/>
+          <text x="360" y="259" text-anchor="middle" fill="#f5a623" font-size="8" font-family="DM Mono,monospace">Hard Clip</text>
+          <text x="360" y="271" text-anchor="middle" fill="#7a7890" font-size="7.5" font-family="DM Mono,monospace">clip to raw contract</text>
+          <text x="360" y="281" text-anchor="middle" fill="#7a7890" font-size="7.5" font-family="DM Mono,monospace">inj / wd limits</text>
+
+          <!-- Connecting lines from LP boxes to constraint panel -->
+          <line x1="158" y1="100" x2="176" y2="78" stroke="rgba(74,158,255,0.18)" stroke-width="0.7" stroke-dasharray="3 2"/>
+          <line x1="158" y1="126" x2="176" y2="168" stroke="rgba(61,232,160,0.18)" stroke-width="0.7" stroke-dasharray="3 2"/>
+          <line x1="158" y1="220" x2="176" y2="264" stroke="rgba(245,166,35,0.18)" stroke-width="0.7" stroke-dasharray="3 2"/>
+        </svg>
+
+        <!-- Key numbers -->
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-top:10px;">
+          <div class="stat-box" style="padding:10px 12px;">
+            <div class="s-label">Horizon</div>
+            <div class="s-val c-blue" style="font-size:18px;">60d</div>
+          </div>
+          <div class="stat-box" style="padding:10px 12px;">
+            <div class="s-label">Lag</div>
+            <div class="s-val c-green" style="font-size:18px;">2-day</div>
+          </div>
+          <div class="stat-box" style="padding:10px 12px;">
+            <div class="s-label">Quantile</div>
+            <div class="s-val c-purple" style="font-size:18px;">P95</div>
+          </div>
+          <div class="stat-box" style="padding:10px 12px;">
+            <div class="s-label">LP Margin α</div>
+            <div class="s-val c-amber" style="font-size:18px;">0.10</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════ COL 4 ROW 2: FORECAST -->
+  <div class="cell" style="grid-column:4; grid-row:3;">
+    <div class="bg-grid"></div>
+    <div class="glow-accent" style="width:160px;height:160px;background:rgba(180,143,255,0.08);top:-40px;right:-40px;"></div>
+    <div class="section-tag">Forecast Accuracy</div>
+    <div class="hl" style="background: linear-gradient(90deg, var(--purple), transparent);"></div>
+
+    <div class="hero-stat">
+      <div class="num c-purple">89.0<span style="font-size:36px">%</span></div>
+      <div class="unit">[P10, P95] interval coverage</div>
+    </div>
+
+    <div style="margin-bottom:16px;">
+      <div style="font-size:10px;color:var(--muted);margin-bottom:8px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:0.1em;">P50 Forecast MAE — 2-Day Ahead</div>
+      <div style="font-family:'DM Mono',monospace;font-size:28px;color:var(--text);line-height:1;">229.6 <span style="font-size:13px;color:var(--muted);">units</span></div>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px;">vs mean daily usage of 1,736.7 — 13.2% relative error</div>
+    </div>
+
+    <div style="margin-bottom:16px;">
+      <div style="font-size:10px;color:var(--muted);margin-bottom:8px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:0.1em;">P10–P95 Interval Width</div>
+      <div style="font-family:'DM Mono',monospace;font-size:28px;color:var(--text);line-height:1;">±515 <span style="font-size:13px;color:var(--muted);">units</span></div>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px;">P95 over-forecasts by +538 on average — conservative by design</div>
+    </div>
+
+    <div style="border-top:1px solid var(--border);padding-top:14px;margin-top:4px;">
+      <div style="font-size:10px;color:var(--muted);margin-bottom:10px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:0.1em;">Model Details</div>
+      <div style="display:flex;flex-direction:column;gap:5px;">
+        <div style="display:flex;justify-content:space-between;font-size:11px;">
+          <span style="color:var(--muted);">Target</span>
+          <span style="font-family:'DM Mono',monospace;color:var(--text);">Total Usage (direct)</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;">
+          <span style="color:var(--muted);">Min lag</span>
+          <span style="font-family:'DM Mono',monospace;color:var(--text);">T−3  (lag_1 + 2-day shift)</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;">
+          <span style="color:var(--muted);">Eff. lags</span>
+          <span style="font-family:'DM Mono',monospace;color:var(--text);">T−3,4,5,9,16,23,30</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;">
+          <span style="color:var(--muted);">Features</span>
+          <span style="font-family:'DM Mono',monospace;color:var(--text);">23 total  incl. holiday flags</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;">
+          <span style="color:var(--muted);">Retrain</span>
+          <span style="font-family:'DM Mono',monospace;color:var(--text);">36 snapshots, monthly expanding</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════ FOOTER -->
+  <footer class="footer">
+    <div class="footer-left">DATA SCIENCE CAPSTONE PROJECT · 2026 </div>
+    <div class="footer-pills">
+      <div class="pill">Python</div>
+      <div class="pill">scikit-learn</div>
+      <div class="pill">scipy.optimize</div>
+      <div class="pill">HiGHS</div>
+      <div class="pill">Marimo</div>
+      <div class="pill">Altair</div>
+      <div class="pill">Conformal Prediction</div>
+      <div class="pill">Stochastic LP</div>
+      <div class="pill">Rolling MPC</div>
+    </div>
+  </footer>
+
+</div>
+</body>
+</html>
